@@ -29,8 +29,8 @@ func CP56Time2a(t time.Time, loc *time.Location) []byte {
 		byte(ts.Weekday()<<5) | byte(ts.Day()), byte(ts.Month()), byte(ts.Year() - 2000)}
 }
 
-// ParseCP56Time2a 7个八位位组二进制时间，建议所有时标采用UTC，读7个字节，返回时间
-// The year is assumed to be in the 20th century.
+// ParseCP56Time2a seven-octet binary time. It is recommended that all time tags use UTC. Reads 7 bytes and returns a time.
+// The year is assumed to be in the 21st century (2000-based encoding).
 // See IEC 60870-5-4 § 6.8 and IEC 60870-5-101 second edition § 7.2.6.18.
 func ParseCP56Time2a(bytes []byte, loc *time.Location) time.Time {
 	if len(bytes) < 7 || bytes[2]&0x80 == 0x80 {
@@ -53,7 +53,7 @@ func ParseCP56Time2a(bytes []byte, loc *time.Location) time.Time {
 	return time.Date(year, month, day, hour, min, sec, nsec, loc)
 }
 
-// CP24Time2a time to CP56Time2a 3个八位位组二进制时间，建议所有时标采用UTC
+// CP24Time2a time to CP56Time2a. Three-octet binary time; it is recommended that all time tags use UTC.
 // See companion standard 101, subclass 7.2.6.19.
 func CP24Time2a(t time.Time, loc *time.Location) []byte {
 	if loc == nil {
@@ -64,7 +64,7 @@ func CP24Time2a(t time.Time, loc *time.Location) []byte {
 	return []byte{byte(msec), byte(msec >> 8), byte(ts.Minute())}
 }
 
-// ParseCP24Time2a 3个八位位组二进制时间，建议所有时标采用UTC,读3字节,返回一个时间
+// ParseCP24Time2a three-octet binary time. It is recommended that all time tags use UTC. Reads 3 bytes and returns a time.
 // See companion standard 101, subclass 7.2.6.19.
 func ParseCP24Time2a(bytes []byte, loc *time.Location) time.Time {
 	if len(bytes) < 3 || bytes[2]&0x80 == 0x80 {
@@ -92,13 +92,13 @@ func ParseCP24Time2a(bytes []byte, loc *time.Location) time.Time {
 	return val
 }
 
-// CP16Time2a msec to CP16Time2a 2个八位位组二进制时间
+// CP16Time2a msec to CP16Time2a. Two-octet binary time.
 // See companion standard 101, subclass 7.2.6.20.
 func CP16Time2a(msec uint16) []byte {
 	return []byte{byte(msec), byte(msec >> 8)}
 }
 
-// ParseCP16Time2a 2个八位位组二进制时间,读2字节,返回一个值
+// ParseCP16Time2a two-octet binary time. Reads 2 bytes and returns a value.
 // See companion standard 101, subclass 7.2.6.20.
 func ParseCP16Time2a(b []byte) uint16 {
 	return binary.LittleEndian.Uint16(b)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/bits"
+	"strings"
 	"time"
 )
 
@@ -176,55 +177,315 @@ func (sf *ASDU) SendReplyMirror(c Connect, cause Cause) error {
 	return c.Send(r)
 }
 
-//// String returns a full description.
-//func (u *ASDU) String() string {
-//	dataSize, err := GetInfoObjSize(u.Type)
-//	if err != nil {
-//		if !u.InfoSeq {
-//			return fmt.Sprintf("%s: %#x", u.Identifier, u.infoObj)
-//		}
-//		return fmt.Sprintf("%s seq: %#x", u.Identifier, u.infoObj)
-//	}
-//
-//	end := len(u.infoObj)
-//	addrSize := u.InfoObjAddrSize
-//	if end < addrSize {
-//		if !u.InfoSeq {
-//			return fmt.Sprintf("%s: %#x <EOF>", u.Identifier, u.infoObj)
-//		}
-//		return fmt.Sprintf("%s seq: %#x <EOF>", u.Identifier, u.infoObj)
-//	}
-//	addr := u.ParseInfoObjAddr(u.infoObj)
-//
-//	buf := bytes.NewBufferString(u.Identifier.String())
-//
-//	for i := addrSize; ; {
-//		start := i
-//		i += dataSize
-//		if i > end {
-//			fmt.Fprintf(buf, " %d:%#x <EOF>", addr, u.infoObj[start:])
-//			break
-//		}
-//		fmt.Fprintf(buf, " %d:%#x", addr, u.infoObj[start:i])
-//		if i == end {
-//			break
-//		}
-//
-//		if u.InfoSeq {
-//			addr++
-//		} else {
-//			start = i
-//			i += addrSize
-//			if i > end {
-//				fmt.Fprintf(buf, " %#x <EOF>", u.infoObj[start:i])
-//				break
-//			}
-//			addr = u.ParseInfoObjAddr(u.infoObj[start:])
-//		}
-//	}
-//
-//	return buf.String()
-//}
+// String returns a human-readable description of the ASDU without dumping raw byte arrays.
+func (sf *ASDU) String() string {
+	if sf == nil {
+		return "<nil>"
+	}
+	var b strings.Builder
+	// Header: Type, VSQ, Cause, Addresses
+	b.WriteString(sf.Identifier.String())
+	b.WriteByte(' ')
+	b.WriteString(sf.Variable.String())
+	fmt.Fprintf(&b, " IOA-Width=%d", sf.InfoObjAddrSize)
+
+	// If there's no information object payload, return header
+	if len(sf.infoObj) == 0 {
+		return b.String()
+	}
+
+	// Work on a non-destructive copy of the infoObj by saving and restoring slice
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+
+	switch sf.Type {
+	// Monitored information (common)
+	case M_SP_NA_1, M_SP_TA_1, M_SP_TB_1:
+		infos := sf.GetSinglePoint()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=%t", it.Ioa, it.Value)
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
+		infos := sf.GetDoublePoint()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=%d", it.Ioa, it.Value)
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1:
+		infos := sf.GetStepPosition()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=val(%d)", it.Ioa, it.Value.Val)
+			if it.Value.HasTransient {
+				b.WriteString(" transient")
+			}
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
+		infos := sf.GetBitString32()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=0x%08x", it.Ioa, it.Value)
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
+		infos := sf.GetMeasuredValueNormal()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=%.6f", it.Ioa, it.Value.Float64())
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
+		infos := sf.GetMeasuredValueScaled()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=%d", it.Ioa, it.Value)
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
+		infos := sf.GetMeasuredValueFloat()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=%g", it.Ioa, it.Value)
+			if it.Qds != QDSGood {
+				fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
+		infos := sf.GetIntegratedTotals()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			v := it.Value
+			fmt.Fprintf(&b, "%d=count(%d) seq=%d", it.Ioa, v.CounterReading, v.SeqNumber)
+			if v.HasCarry {
+				b.WriteString(" carry")
+			}
+			if v.IsAdjusted {
+				b.WriteString(" adjusted")
+			}
+			if v.IsInvalid {
+				b.WriteString(" invalid")
+			}
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_EP_TA_1, M_EP_TD_1:
+		infos := sf.GetEventOfProtectionEquipment()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=event(%d) QDP=0x%02x msec=%d", it.Ioa, it.Event, byte(it.Qdp), it.Msec)
+			if !it.Time.IsZero() {
+				fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+			}
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+	case M_EP_TB_1, M_EP_TE_1:
+		it := sf.GetPackedStartEventsOfProtectionEquipment()
+		fmt.Fprintf(&b, " IOA=%d start=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Event), byte(it.Qdp), it.Msec)
+		if !it.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+		}
+	case M_EP_TC_1, M_EP_TF_1:
+		it := sf.GetPackedOutputCircuitInfo()
+		fmt.Fprintf(&b, " IOA=%d oci=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Oci), byte(it.Qdp), it.Msec)
+		if !it.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
+		}
+	case M_PS_NA_1:
+		infos := sf.GetPackedSinglePointWithSCD()
+		fmt.Fprintf(&b, " items=%d", len(infos))
+		for i, it := range infos {
+			if i == 0 {
+				b.WriteString(" [")
+			} else {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%d=SCD(0x%08x) QDS=0x%02x", it.Ioa, uint32(it.Scd), byte(it.Qds))
+		}
+		if len(infos) > 0 {
+			b.WriteByte(']')
+		}
+
+	// System and control directions
+	case M_EI_NA_1:
+		ioa, coi := sf.GetEndOfInitialization()
+		fmt.Fprintf(&b, " IOA=%d cause=%d localChange=%t", ioa, coi.Cause, coi.IsLocalChange)
+	case C_SC_NA_1, C_SC_TA_1:
+		cmd := sf.GetSingleCmd()
+		fmt.Fprintf(&b, " IOA=%d val=%t QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_DC_NA_1, C_DC_TA_1:
+		cmd := sf.GetDoubleCmd()
+		fmt.Fprintf(&b, " IOA=%d val=%d QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_RC_NA_1, C_RC_TA_1:
+		cmd := sf.GetStepCmd()
+		fmt.Fprintf(&b, " IOA=%d val=%d QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_SE_NA_1, C_SE_TA_1:
+		cmd := sf.GetSetpointNormalCmd()
+		fmt.Fprintf(&b, " IOA=%d val=%.6f QOS=0x%02x", cmd.Ioa, cmd.Value.Float64(), byte(cmd.Qos.Value()))
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_SE_NB_1, C_SE_TB_1:
+		cmd := sf.GetSetpointCmdScaled()
+		fmt.Fprintf(&b, " IOA=%d val=%d QOS=0x%02x", cmd.Ioa, cmd.Value, byte(cmd.Qos.Value()))
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_SE_NC_1, C_SE_TC_1:
+		cmd := sf.GetSetpointFloatCmd()
+		fmt.Fprintf(&b, " IOA=%d val=%g QOS=0x%02x", cmd.Ioa, cmd.Value, byte(cmd.Qos.Value()))
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+	case C_BO_NA_1, C_BO_TA_1:
+		cmd := sf.GetBitsString32Cmd()
+		fmt.Fprintf(&b, " IOA=%d bits=0x%08x", cmd.Ioa, cmd.Value)
+		if !cmd.Time.IsZero() {
+			fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
+		}
+
+	// Parameters
+	case P_ME_NA_1:
+		p := sf.GetParameterNormal()
+		fmt.Fprintf(&b, " IOA=%d val=%.6f QPM=0x%02x", p.Ioa, p.Value.Float64(), byte(p.Qpm.Value()))
+	case P_ME_NB_1:
+		p := sf.GetParameterScaled()
+		fmt.Fprintf(&b, " IOA=%d val=%d QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
+	case P_ME_NC_1:
+		p := sf.GetParameterFloat()
+		fmt.Fprintf(&b, " IOA=%d val=%g QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
+	case P_AC_NA_1:
+		p := sf.GetParameterActivation()
+		fmt.Fprintf(&b, " IOA=%d QPA=%d", p.Ioa, p.Qpa)
+
+	default:
+		// Unknown or not yet formatted types: provide concise summary without dumping raw bytes
+		n := int(sf.Variable.Number)
+		if n == 0 {
+			n = 1
+		}
+		fmt.Fprintf(&b, " items=%d payload=%dB", n, len(sf.infoObj))
+	}
+
+	return b.String()
+}
 
 // MarshalBinary honors the encoding.BinaryMarshaler interface.
 func (sf *ASDU) MarshalBinary() (data []byte, err error) {

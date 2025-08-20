@@ -63,6 +63,8 @@ type Client struct {
 
 	onConnect        func(c *Client)
 	onConnectionLost func(c *Client)
+	onActivated      func(c *Client)
+	onDeactivated    func(c *Client)
 }
 
 // NewClient returns an IEC104 master,default config and default asdu.ParamsWide params
@@ -77,6 +79,8 @@ func NewClient(handler ClientHandlerInterface, o *ClientOption) *Client {
 		Clog:             clog.NewLogger("cs104 client => "),
 		onConnect:        func(*Client) {},
 		onConnectionLost: func(*Client) {},
+		onActivated:      func(*Client) {},
+		onDeactivated:    func(*Client) {},
 	}
 }
 
@@ -92,6 +96,22 @@ func (sf *Client) SetOnConnectHandler(f func(c *Client)) *Client {
 func (sf *Client) SetConnectionLostHandler(f func(c *Client)) *Client {
 	if f != nil {
 		sf.onConnectionLost = f
+	}
+	return sf
+}
+
+// SetOnActivatedHandler sets a handler invoked when StartDT is confirmed by the server
+func (sf *Client) SetOnActivatedHandler(f func(c *Client)) *Client {
+	if f != nil {
+		sf.onActivated = f
+	}
+	return sf
+}
+
+// SetOnDeactivatedHandler sets a handler invoked when StopDT is confirmed by the server
+func (sf *Client) SetOnDeactivatedHandler(f func(c *Client)) *Client {
+	if f != nil {
+		sf.onDeactivated = f
 	}
 	return sf
 }
@@ -145,7 +165,7 @@ func (sf *Client) running() {
 		case <-ctx.Done():
 			return
 		default:
-			// 随机500ms-1s的重试，避免快速重试造成服务器许多无效连接
+			// Retry after a random 500ms–1s delay to avoid rapid retries causing many invalid server connections
 			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 		}
 	}
@@ -331,7 +351,7 @@ func (sf *Client) run(ctx context.Context) {
 				return
 			}
 
-			// 确定最早发送的i-Frame是否超时,超时则回复sFrame
+			// If the earliest sent I-frame has timed out, send an S-frame in response
 			if sf.ackNoRcv != sf.seqNoRcv &&
 				(now.Sub(unAckRcvSince) >= sf.option.config.RecvUnAckTimeout2 ||
 					now.Sub(idleTimeout3Sine) >= timeoutResolution) {
@@ -339,7 +359,7 @@ func (sf *Client) run(ctx context.Context) {
 				sf.ackNoRcv = sf.seqNoRcv
 			}
 
-			// 空闲时间到，发送TestFrActive帧,保活
+			// When idle timeout elapses, send TestFrActive frame to keep the connection alive
 			if now.Sub(idleTimeout3Sine) >= sf.option.config.IdleTimeout3 {
 				sf.sendUFrame(uTestFrActive)
 				testFrAliveSendSince = time.Now()
@@ -347,7 +367,7 @@ func (sf *Client) run(ctx context.Context) {
 			}
 
 		case apdu := <-sf.rcvRaw:
-			idleTimeout3Sine = time.Now() // 每收到一个i帧,S帧,U帧, 重置空闲定时器, t3
+			idleTimeout3Sine = time.Now() // Upon receiving any I, S, or U frame, reset the idle timer (t3)
 			apci, asduVal := parse(apdu)
 			switch head := apci.(type) {
 			case sAPCI:
@@ -388,12 +408,16 @@ func (sf *Client) run(ctx context.Context) {
 				case uStartDtConfirm:
 					atomic.StoreUint32(&sf.isActive, active)
 					sf.startDtActiveSendSince.Store(willNotTimeout)
+					// notify activation
+					sf.onActivated(sf)
 				//case uStopDtActive:
 				//	sf.sendUFrame(uStopDtConfirm)
 				//	atomic.StoreUint32(&sf.isActive, inactive)
 				case uStopDtConfirm:
 					atomic.StoreUint32(&sf.isActive, inactive)
 					sf.stopDtActiveSendSince.Store(willNotTimeout)
+					// notify deactivation
+					sf.onDeactivated(sf)
 				case uTestFrActive:
 					sf.sendUFrame(uTestFrConfirm)
 				case uTestFrConfirm:
@@ -472,7 +496,7 @@ func (sf *Client) updateAckNoOut(ackNo uint16) (ok bool) {
 	if ackNo == sf.ackNoSend {
 		return true
 	}
-	// new acks validate， ack 不能在 req seq 前面,出错
+	// Validate new acknowledgements: ACK cannot precede the request sequence number; treat as error
 	if seqNoCount(sf.ackNoSend, sf.seqNoSend) < seqNoCount(ackNo, sf.seqNoSend) {
 		return false
 	}
@@ -492,6 +516,11 @@ func (sf *Client) updateAckNoOut(ackNo uint16) (ok bool) {
 // IsConnected get server session connected state
 func (sf *Client) IsConnected() bool {
 	return sf.connectStatus() == connected
+}
+
+// IsActive returns whether the data transfer is active (StartDT confirmed)
+func (sf *Client) IsActive() bool {
+	return atomic.LoadUint32(&sf.isActive) == active
 }
 
 // clientHandler hand response handler
@@ -582,7 +611,7 @@ func (sf *Client) SendStopDt() {
 	sf.sendUFrame(uStopDtActive)
 }
 
-//InterrogationCmd wrap asdu.InterrogationCmd
+// InterrogationCmd wrap asdu.InterrogationCmd
 func (sf *Client) InterrogationCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, qoi asdu.QualifierOfInterrogation) error {
 	return asdu.InterrogationCmd(sf, coa, ca, qoi)
 }
