@@ -575,7 +575,7 @@ type MeasuredValueScaledInfo struct {
 	Time time.Time
 }
 
-// measuredValueScaled sends a type identification [M_ME_NB_1], [M_ME_TB_1] or [M_ME_TE_1].测量值,标度化值
+// measuredValueScaled sends a type identification [M_ME_NB_1], [M_ME_TB_1] or [M_ME_TE_1]. Measured value, scaled value
 // [M_ME_NB_1] See companion standard 101, subclass 7.3.1.11
 // [M_ME_TB_1] See companion standard 101, subclass 7.3.1.12
 // [M_ME_TE_1] See companion standard 101, subclass 7.3.1.27
@@ -616,18 +616,18 @@ func measuredValueScaled(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	return c.Send(u)
 }
 
-// MeasuredValueScaled sends a type identification [M_ME_NB_1].测量值,标度化值
+// MeasuredValueScaled sends a type identification [M_ME_NB_1]. Measured value, scaled value
 // [M_ME_NB_1] See companion standard 101, subclass 7.3.1.11
-// 传送原因(coa)用于
-// 监视方向：
-// <1> := 周期/循环
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <1> := Periodic/cyclic
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func MeasuredValueScaled(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueScaledInfo) error {
 	if !(coa.Cause == Periodic || coa.Cause == Background ||
 		coa.Cause == Spontaneous || coa.Cause == Request ||
@@ -637,12 +637,12 @@ func MeasuredValueScaled(c Connect, isSequence bool, coa CauseOfTransmission, ca
 	return measuredValueScaled(c, M_ME_NB_1, isSequence, coa, ca, infos...)
 }
 
-// MeasuredValueScaledCP24Time2a sends a type identification [M_ME_TB_1].带时标CP24Time2a的测量值,标度化值,只有(SQ = 0)单个信息元素集合
+// MeasuredValueScaledCP24Time2a sends a type identification [M_ME_TB_1]. Measured value, scaled value with CP24Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TB_1] See companion standard 101, subclass 7.3.1.12
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueScaledCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueScaledInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -650,12 +650,12 @@ func MeasuredValueScaledCP24Time2a(c Connect, coa CauseOfTransmission, ca Common
 	return measuredValueScaled(c, M_ME_TB_1, false, coa, ca, infos...)
 }
 
-// MeasuredValueScaledCP56Time2a sends a type identification [M_ME_TE_1].带时标CP56Time2a的测量值,标度化值,只有(SQ = 0)单个信息元素集合
+// MeasuredValueScaledCP56Time2a sends a type identification [M_ME_TE_1]. Measured value, scaled value with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TE_1] See companion standard 101, subclass 7.3.1.27
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueScaledCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueScaledInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -673,7 +673,7 @@ type MeasuredValueFloatInfo struct {
 	Time time.Time
 }
 
-// measuredValueFloat sends a type identification [M_ME_NC_1], [M_ME_TC_1] or [M_ME_TF_1].测量值,短浮点数
+// measuredValueFloat sends a type identification [M_ME_NC_1], [M_ME_TC_1] or [M_ME_TF_1]. Measured value, short floating point
 // [M_ME_NC_1] See companion standard 101, subclass 7.3.1.13
 // [M_ME_TC_1] See companion standard 101, subclass 7.3.1.14
 // [M_ME_TF_1] See companion standard 101, subclass 7.3.1.28
@@ -715,18 +715,18 @@ func measuredValueFloat(c Connect, typeID TypeID, isSequence bool, coa CauseOfTr
 	return c.Send(u)
 }
 
-// MeasuredValueFloat sends a type identification [M_ME_TF_1].测量值,短浮点数
+// MeasuredValueFloat sends a type identification [M_ME_TF_1]. Measured value, short floating point
 // [M_ME_NC_1] See companion standard 101, subclass 7.3.1.13
-// 传送原因(coa)用于
-// 监视方向：
-// <1> := 周期/循环
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <1> := Periodic/cyclic
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func MeasuredValueFloat(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueFloatInfo) error {
 	if !(coa.Cause == Periodic || coa.Cause == Background ||
 		coa.Cause == Spontaneous || coa.Cause == Request ||
@@ -736,12 +736,12 @@ func MeasuredValueFloat(c Connect, isSequence bool, coa CauseOfTransmission, ca 
 	return measuredValueFloat(c, M_ME_NC_1, isSequence, coa, ca, infos...)
 }
 
-// MeasuredValueFloatCP24Time2a sends a type identification [M_ME_TC_1].带时标CP24Time2a的测量值,短浮点数,只有(SQ = 0)单个信息元素集合
+// MeasuredValueFloatCP24Time2a sends a type identification [M_ME_TC_1]. Measured value, short floating point with CP24Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TC_1] See companion standard 101, subclass 7.3.1.14
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueFloatCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueFloatInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -749,12 +749,12 @@ func MeasuredValueFloatCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonA
 	return measuredValueFloat(c, M_ME_TC_1, false, coa, ca, infos...)
 }
 
-// MeasuredValueFloatCP56Time2a sends a type identification [M_ME_TF_1].带时标CP56Time2a的测量值,短浮点数,只有(SQ = 0)单个信息元素集合
+// MeasuredValueFloatCP56Time2a sends a type identification [M_ME_TF_1]. Measured value, short floating point with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TF_1] See companion standard 101, subclass 7.3.1.28
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueFloatCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueFloatInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -762,7 +762,7 @@ func MeasuredValueFloatCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonA
 	return measuredValueFloat(c, M_ME_TF_1, false, coa, ca, infos...)
 }
 
-// BinaryCounterReadingInfo the counter reading attributes. 二进制计数量读数
+// BinaryCounterReadingInfo the counter reading attributes. Binary counter reading
 type BinaryCounterReadingInfo struct {
 	Ioa   InfoObjAddr
 	Value BinaryCounterReading
@@ -770,7 +770,7 @@ type BinaryCounterReadingInfo struct {
 	Time time.Time
 }
 
-// integratedTotals sends a type identification [M_IT_NA_1], [M_IT_TA_1] or [M_IT_TB_1]. 累计量
+// integratedTotals sends a type identification [M_IT_NA_1], [M_IT_TA_1] or [M_IT_TB_1]. Integrated totals
 // [M_IT_NA_1] See companion standard 101, subclass 7.3.1.15
 // [M_IT_TA_1] See companion standard 101, subclass 7.3.1.16
 // [M_IT_TB_1] See companion standard 101, subclass 7.3.1.29
@@ -811,16 +811,16 @@ func integratedTotals(c Connect, typeID TypeID, isSequence bool, coa CauseOfTran
 	return c.Send(u)
 }
 
-// IntegratedTotals sends a type identification [M_IT_NA_1]. 累计量
+// IntegratedTotals sends a type identification [M_IT_NA_1]. Integrated totals
 // [M_IT_NA_1] See companion standard 101, subclass 7.3.1.15
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <37> := 响应总计数量召唤
-// <38> := 响应第1组计数量召唤
-// <39> := 响应第2组计数量召唤
-// <40> := 响应第3组计数量召唤
-// <41> := 响应第4组计数量召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <37> := Response to general counter interrogation
+// <38> := Response to group 1 counter interrogation
+// <39> := Response to group 2 counter interrogation
+// <40> := Response to group 3 counter interrogation
+// <41> := Response to group 4 counter interrogation
 func IntegratedTotals(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...BinaryCounterReadingInfo) error {
 	if !(coa.Cause == Spontaneous || (coa.Cause >= RequestByGeneralCounter && coa.Cause <= RequestByGroup4Counter)) {
 		return ErrCmdCause
@@ -828,16 +828,16 @@ func IntegratedTotals(c Connect, isSequence bool, coa CauseOfTransmission, ca Co
 	return integratedTotals(c, M_IT_NA_1, isSequence, coa, ca, infos...)
 }
 
-// IntegratedTotalsCP24Time2a sends a type identification [M_IT_TA_1]. 带时标CP24Time2a的累计量,只有(SQ = 0)单个信息元素集合
+// IntegratedTotalsCP24Time2a sends a type identification [M_IT_TA_1]. Integrated totals with CP24Time2a timestamp, only (SQ = 0) single information elements
 // [M_IT_TA_1] See companion standard 101, subclass 7.3.1.16
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <37> := 响应总计数量召唤
-// <38> := 响应第1组计数量召唤
-// <39> := 响应第2组计数量召唤
-// <40> := 响应第3组计数量召唤
-// <41> := 响应第4组计数量召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <37> := Response to general counter interrogation
+// <38> := Response to group 1 counter interrogation
+// <39> := Response to group 2 counter interrogation
+// <40> := Response to group 3 counter interrogation
+// <41> := Response to group 4 counter interrogation
 func IntegratedTotalsCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...BinaryCounterReadingInfo) error {
 	if !(coa.Cause == Spontaneous || (coa.Cause >= RequestByGeneralCounter && coa.Cause <= RequestByGroup4Counter)) {
 		return ErrCmdCause
@@ -845,16 +845,16 @@ func IntegratedTotalsCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAdd
 	return integratedTotals(c, M_IT_TA_1, false, coa, ca, infos...)
 }
 
-// IntegratedTotalsCP56Time2a sends a type identification [M_IT_TB_1]. 带时标CP56Time2a的累计量,只有(SQ = 0)单个信息元素集合
+// IntegratedTotalsCP56Time2a sends a type identification [M_IT_TB_1]. Integrated totals with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_IT_TB_1] See companion standard 101, subclass 7.3.1.29
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <37> := 响应总计数量召唤
-// <38> := 响应第1组计数量召唤
-// <39> := 响应第2组计数量召唤
-// <40> := 响应第3组计数量召唤
-// <41> := 响应第4组计数量召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
+// <37> := Response to general counter interrogation
+// <38> := Response to group 1 counter interrogation
+// <39> := Response to group 2 counter interrogation
+// <40> := Response to group 3 counter interrogation
+// <41> := Response to group 4 counter interrogation
 func IntegratedTotalsCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...BinaryCounterReadingInfo) error {
 	if !(coa.Cause == Spontaneous || (coa.Cause >= RequestByGeneralCounter && coa.Cause <= RequestByGroup4Counter)) {
 		return ErrCmdCause
@@ -862,7 +862,7 @@ func IntegratedTotalsCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAdd
 	return integratedTotals(c, M_IT_TB_1, false, coa, ca, infos...)
 }
 
-// EventOfProtectionEquipmentInfo the counter reading attributes. 二进制计数量读数
+// EventOfProtectionEquipmentInfo the protection equipment event attributes.
 type EventOfProtectionEquipmentInfo struct {
 	Ioa   InfoObjAddr
 	Event SingleEvent
@@ -872,7 +872,7 @@ type EventOfProtectionEquipmentInfo struct {
 	Time time.Time
 }
 
-// eventOfProtectionEquipment sends a type identification [M_EP_TA_1], [M_EP_TD_1]. 继电器保护设备事件
+// eventOfProtectionEquipment sends a type identification [M_EP_TA_1], [M_EP_TD_1]. Event of protection equipment (relay protection device event)
 // [M_EP_TA_1] See companion standard 101, subclass 7.3.1.17
 // [M_EP_TD_1] See companion standard 101, subclass 7.3.1.30
 func eventOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, infos ...EventOfProtectionEquipmentInfo) error {
@@ -911,25 +911,25 @@ func eventOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmissio
 	return c.Send(u)
 }
 
-// EventOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TA_1]. 带时标CP24Time2a继电器保护设备事件
+// EventOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TA_1]. Event of protection equipment with CP24Time2a timestamp
 // [M_EP_TA_1] See companion standard 101, subclass 7.3.1.17
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func EventOfProtectionEquipmentCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...EventOfProtectionEquipmentInfo) error {
 	return eventOfProtectionEquipment(c, M_EP_TA_1, coa, ca, infos...)
 }
 
-// EventOfProtectionEquipmentCP56Time2a sends a type identification [M_EP_TD_1]. 带时标CP24Time2a继电器保护设备事件
+// EventOfProtectionEquipmentCP56Time2a sends a type identification [M_EP_TD_1]. Event of protection equipment with CP56Time2a timestamp
 // [M_EP_TD_1] See companion standard 101, subclass 7.3.1.30
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func EventOfProtectionEquipmentCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...EventOfProtectionEquipmentInfo) error {
 	return eventOfProtectionEquipment(c, M_EP_TD_1, coa, ca, infos...)
 }
 
-// PackedStartEventsOfProtectionEquipmentInfo 继电器保护设备成组启动事件
+// PackedStartEventsOfProtectionEquipmentInfo Packed start events of protection equipment (group start events)
 type PackedStartEventsOfProtectionEquipmentInfo struct {
 	Ioa   InfoObjAddr
 	Event StartEvent
@@ -939,7 +939,7 @@ type PackedStartEventsOfProtectionEquipmentInfo struct {
 	Time time.Time
 }
 
-// packedStartEventsOfProtectionEquipment sends a type identification [M_EP_TB_1], [M_EP_TE_1]. 继电器保护设备事件
+// packedStartEventsOfProtectionEquipment sends a type identification [M_EP_TB_1], [M_EP_TE_1]. Packed start events of protection equipment
 // [M_EP_TB_1] See companion standard 101, subclass 7.3.1.18
 // [M_EP_TE_1] See companion standard 101, subclass 7.3.1.31
 func packedStartEventsOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, info PackedStartEventsOfProtectionEquipmentInfo) error {
@@ -975,25 +975,25 @@ func packedStartEventsOfProtectionEquipment(c Connect, typeID TypeID, coa CauseO
 	return c.Send(u)
 }
 
-// PackedStartEventsOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TB_1]. 继电器保护设备事件
+// PackedStartEventsOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TB_1]. Packed start events of protection equipment with CP24Time2a timestamp
 // [M_EP_TB_1] See companion standard 101, subclass 7.3.1.18
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func PackedStartEventsOfProtectionEquipmentCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, info PackedStartEventsOfProtectionEquipmentInfo) error {
 	return packedStartEventsOfProtectionEquipment(c, M_EP_TB_1, coa, ca, info)
 }
 
-// PackedStartEventsOfProtectionEquipmentCP56Time2a sends a type identification [M_EP_TB_1]. 继电器保护设备事件
+// PackedStartEventsOfProtectionEquipmentCP56Time2a sends a type identification [M_EP_TE_1]. Packed start events of protection equipment with CP56Time2a timestamp
 // [M_EP_TE_1] See companion standard 101, subclass 7.3.1.31
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func PackedStartEventsOfProtectionEquipmentCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, info PackedStartEventsOfProtectionEquipmentInfo) error {
 	return packedStartEventsOfProtectionEquipment(c, M_EP_TE_1, coa, ca, info)
 }
 
-// PackedOutputCircuitInfoInfo 继电器保护设备成组输出电路信息
+// PackedOutputCircuitInfoInfo Packed output circuit information of protection equipment (grouped)
 type PackedOutputCircuitInfoInfo struct {
 	Ioa  InfoObjAddr
 	Oci  OutputCircuitInfo
@@ -1003,7 +1003,7 @@ type PackedOutputCircuitInfoInfo struct {
 	Time time.Time
 }
 
-// packedOutputCircuitInfo sends a type identification [M_EP_TC_1], [M_EP_TF_1]. 继电器保护设备成组输出电路信息
+// packedOutputCircuitInfo sends a type identification [M_EP_TC_1], [M_EP_TF_1]. Packed output circuit information of protection equipment (grouped)
 // [M_EP_TC_1] See companion standard 101, subclass 7.3.1.19
 // [M_EP_TF_1] See companion standard 101, subclass 7.3.1.32
 func packedOutputCircuitInfo(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, info PackedOutputCircuitInfoInfo) error {
@@ -1039,11 +1039,11 @@ func packedOutputCircuitInfo(c Connect, typeID TypeID, coa CauseOfTransmission, 
 	return c.Send(u)
 }
 
-// PackedOutputCircuitInfoCP24Time2a sends a type identification [M_EP_TC_1]. 带CP24Time2a继电器保护设备成组输出电路信息
+// PackedOutputCircuitInfoCP24Time2a sends a type identification [M_EP_TC_1]. Packed output circuit information of protection equipment with CP24Time2a timestamp (grouped)
 // [M_EP_TC_1] See companion standard 101, subclass 7.3.1.19
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func PackedOutputCircuitInfoCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, info PackedOutputCircuitInfoInfo) error {
 	return packedOutputCircuitInfo(c, M_EP_TC_1, coa, ca, info)
 }
