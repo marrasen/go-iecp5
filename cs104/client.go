@@ -36,7 +36,7 @@ type Client struct {
 	rcvRaw   chan []byte // for recvLoop raw cs104 frame
 	sendRaw  chan []byte // for sendLoop raw cs104 frame
 
-	// I帧的发送与接收序号
+	// Send and receive sequence numbers for I-frames
 	seqNoSend uint16 // sequence number of next outbound I-frame
 	ackNoSend uint16 // outbound sequence number yet to be confirmed
 	seqNoRcv  uint16 // sequence number of next inbound I-frame
@@ -45,15 +45,15 @@ type Client struct {
 	// maps sendTime I-frames to their respective sequence number
 	pending []seqPending
 
-	startDtActiveSendSince atomic.Value // 当发送startDtActive时,等待确认回复的超时间隔
-	stopDtActiveSendSince  atomic.Value // 当发起stopDtActive时,等待确认回复的超时
+	startDtActiveSendSince atomic.Value // Timeout interval while waiting for confirmation after sending StartDT-Active
+	stopDtActiveSendSince  atomic.Value // Timeout while waiting for confirmation after initiating StopDT-Active
 
-	// 连接状态
+	// Connection status
 	status   uint32
 	rwMux    sync.RWMutex
 	isActive uint32
 
-	// 其他
+	// Miscellaneous
 	clog.Clog
 
 	wg          sync.WaitGroup
@@ -126,7 +126,7 @@ func (sf *Client) Start() error {
 	return nil
 }
 
-// Connect is
+// running manages the connection lifecycle to the server, handling connection attempts, failures, and disconnections.
 func (sf *Client) running() {
 	var ctx context.Context
 
@@ -281,8 +281,8 @@ func (sf *Client) run(ctx context.Context) {
 	var willNotTimeout = time.Now().Add(time.Hour * 24 * 365 * 100)
 
 	var unAckRcvSince = willNotTimeout
-	var idleTimeout3Sine = time.Now()         // 空闲间隔发起testFrAlive
-	var testFrAliveSendSince = willNotTimeout // 当发起testFrAlive时,等待确认回复的超时间隔
+	var idleTimeout3Sine = time.Now()         // Idle interval checkpoint for initiating TestFrAct
+	var testFrAliveSendSince = willNotTimeout // Timeout interval while waiting for confirmation after initiating TestFrAct
 
 	sf.startDtActiveSendSince.Store(willNotTimeout)
 	sf.stopDtActiveSendSince.Store(willNotTimeout)
@@ -312,7 +312,7 @@ func (sf *Client) run(ctx context.Context) {
 		atomic.StoreUint32(&sf.isActive, inactive)
 		sf.setConnectStatus(disconnected)
 		checkTicker.Stop()
-		_ = sf.conn.Close() // 连锁引发cancel
+		_ = sf.conn.Close() // Trigger cancel indirectly; closing the connection causes loops to abort
 		sf.wg.Wait()
 		sf.onConnectionLost(sf)
 		sf.Debug("run stopped!")

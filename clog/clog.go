@@ -18,30 +18,40 @@ type LogProvider interface {
 	Debug(format string, v ...interface{})
 }
 
-// Clog internal logging debug implementation
+// Level represents the logging severity.
+// Ordering: Off < Critical < Error < Warn < Debug
+// Setting a level enables logging for that level and all more critical levels.
+type Level uint32
+
+const (
+	LevelOff Level = iota
+	LevelCritical
+	LevelError
+	LevelWarn
+	LevelDebug
+)
+
+// Clog internal logging implementation with level control
 type Clog struct {
 	provider LogProvider
-	// is log output enabled,1: enable, 0: disable
-	has uint32
+	// level stores the current logging level (atomic)
+	level uint32
 }
 
 // NewLogger creates a new logger using the specified prefix
+// Default level is Off (no logs) to preserve previous behavior.
 func NewLogger(prefix string) Clog {
 	return Clog{
 		defaultLogger{
 			log.New(os.Stdout, prefix, log.LstdFlags),
 		},
-		0,
+		uint32(LevelOff),
 	}
 }
 
-// LogMode set enable or disable log output when you has set provider
-func (sf *Clog) LogMode(enable bool) {
-	if enable {
-		atomic.StoreUint32(&sf.has, 1)
-	} else {
-		atomic.StoreUint32(&sf.has, 0)
-	}
+// SetLogLevel sets the logging level. LevelOff disables all logs; higher levels allow more verbose logs.
+func (sf *Clog) SetLogLevel(lvl Level) {
+	atomic.StoreUint32(&sf.level, uint32(lvl))
 }
 
 // SetLogProvider set provider provider
@@ -51,30 +61,34 @@ func (sf *Clog) SetLogProvider(p LogProvider) {
 	}
 }
 
+func (sf Clog) allowed(required Level) bool {
+	return atomic.LoadUint32(&sf.level) >= uint32(required)
+}
+
 // Critical Log CRITICAL level message.
 func (sf Clog) Critical(format string, v ...interface{}) {
-	if atomic.LoadUint32(&sf.has) == 1 {
+	if sf.allowed(LevelCritical) {
 		sf.provider.Critical(format, v...)
 	}
 }
 
 // Error Log ERROR level message.
 func (sf Clog) Error(format string, v ...interface{}) {
-	if atomic.LoadUint32(&sf.has) == 1 {
+	if sf.allowed(LevelError) {
 		sf.provider.Error(format, v...)
 	}
 }
 
 // Warn Log WARN level message.
 func (sf Clog) Warn(format string, v ...interface{}) {
-	if atomic.LoadUint32(&sf.has) == 1 {
+	if sf.allowed(LevelWarn) {
 		sf.provider.Warn(format, v...)
 	}
 }
 
 // Debug Log DEBUG level message.
 func (sf Clog) Debug(format string, v ...interface{}) {
-	if atomic.LoadUint32(&sf.has) == 1 {
+	if sf.allowed(LevelDebug) {
 		sf.provider.Debug(format, v...)
 	}
 }

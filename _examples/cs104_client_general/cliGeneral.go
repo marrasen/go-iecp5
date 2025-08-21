@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/marrasen/go-iecp5/asdu"
+	"github.com/marrasen/go-iecp5/clog"
 	"github.com/marrasen/go-iecp5/cs104"
 )
 
@@ -22,7 +23,7 @@ func main() {
 
 	client := cs104.NewClient(mycli, option)
 
-	client.LogMode(true)
+	client.SetLogLevel(clog.LevelError)
 
 	client.SetOnConnectHandler(func(c *cs104.Client) {
 		c.SendStartDt() // 发送startDt激活指令

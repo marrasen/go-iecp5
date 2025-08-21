@@ -27,7 +27,7 @@ type ServerSpecial interface {
 	SetOnConnectHandler(f func(c asdu.Connect))
 	SetConnectionLostHandler(f func(c asdu.Connect))
 
-	LogMode(enable bool)
+	SetLogLevel(level clog.Level)
 	SetLogProvider(p clog.LogProvider)
 }
 
@@ -56,7 +56,7 @@ func NewServerSpecial(handler ServerHandlerInterface, o *ClientOption) ServerSpe
 	}
 }
 
-// SetOnConnectHandler set on connect handler
+// SetOnConnectHandler set on connected handler
 func (sf *serverSpec) SetOnConnectHandler(f func(conn asdu.Connect)) {
 	sf.onConnection = f
 }
@@ -66,7 +66,8 @@ func (sf *serverSpec) SetConnectionLostHandler(f func(c asdu.Connect)) {
 	sf.connectionLost = f
 }
 
-// Start start the server,and return quickly,if it nil,the server will disconnected background,other failed
+// Start begins the server's operation and establishes a connection to the remote server if specified.
+// It returns an error if the remote server is not configured.
 func (sf *serverSpec) Start() error {
 	if sf.option.server == nil {
 		return errors.New("empty remote server")
@@ -76,7 +77,7 @@ func (sf *serverSpec) Start() error {
 	return nil
 }
 
-// 增加重连间隔
+// running manages the server connection lifecycle, including establishing, monitoring, and reconnecting if needed.
 func (sf *serverSpec) running() {
 	var ctx context.Context
 
