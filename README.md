@@ -1,9 +1,12 @@
-# go-iecp5(Archived)
-## NOTE: Archived, not maintain. 
-## NOTE: 已归档, 不再维护, 放弃License. 有需要的可以自由分发
+# go-iecp5
 
-go-iecp5 library for IEC 60870-5 based protocols in pure go.
-The current implementation contains code for IEC 60870-5-104 (protocool over TCP/IP) specifications.
+Note about this repository
+- This repository is a fork of https://github.com/thinkgos/go-iecp5.
+- The original upstream repository has been archived by its author and is no longer maintained.
+- The original README contained the following Chinese notice: "已归档, 不再维护, 放弃License. 有需要的可以自由分发". Translation: "Archived, no longer maintained, license abandoned. If needed, you can freely redistribute."
+
+go-iecp5 library for IEC 60870-5 based protocols in pure Go.
+The current implementation contains code for IEC 60870-5-104 (protocol over TCP/IP) specifications.
 
 
 
@@ -23,15 +26,15 @@ cs104 package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/cs104?st
 ## Feature:
 
 - client/server for CS 104 TCP/IP communication
-- support for much application layer(except file object) message types,
+- support for much application layer (except file object) message types,
 
 # Reference
-lib60870 c library [lib60870](https://github.com/mz-automation/lib60870)  
-lib60870 c library doc [lib60870 doc](https://support.mz-automation.de/doc/lib60870/latest/group__CS104__MASTER.html)
+lib60870 C library [lib60870](https://github.com/mz-automation/lib60870)  
+lib60870 C library docs [lib60870 doc](https://support.mz-automation.de/doc/lib60870/latest/group__CS104__MASTER.html)
 
 ## Donation
 
-if package help you a lot,you can support us by:
+If this package helps you a lot, you can support the original author:
 
 **Alipay**
 
