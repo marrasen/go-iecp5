@@ -5,7 +5,9 @@
 package cs104
 
 import (
+	"context"
 	"crypto/tls"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -13,14 +15,16 @@ import (
 	"github.com/marrasen/go-iecp5/asdu"
 )
 
-// ClientOption 客户端配置
+// ClientOption client configuration
 type ClientOption struct {
 	config            Config
 	params            asdu.Params
-	server            *url.URL      // 连接的服务器端
-	autoReconnect     bool          // 是否启动重连
-	reconnectInterval time.Duration // 重连间隔时间
-	TLSConfig         *tls.Config   // tls配置
+	server            *url.URL      // Connected server endpoint
+	autoReconnect     bool          // Enable auto reconnect
+	reconnectInterval time.Duration // Reconnection interval
+	TLSConfig         *tls.Config   // TLS configuration
+	// DialContext allows providing a custom dialer (e.g., SSH jump). If nil, net.Dialer is used.
+	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
 }
 
 // NewOption with default config and default asdu.ParamsWide params
@@ -31,6 +35,7 @@ func NewOption() *ClientOption {
 		nil,
 		true,
 		DefaultReconnectInterval,
+		nil,
 		nil,
 	}
 }
@@ -75,9 +80,15 @@ func (sf *ClientOption) SetTLSConfig(t *tls.Config) *ClientOption {
 	return sf
 }
 
+// SetDialContext sets a custom dialer function used to establish TCP connections (e.g., SSH jump).
+func (sf *ClientOption) SetDialContext(dial func(ctx context.Context, network, address string) (net.Conn, error)) *ClientOption {
+	sf.DialContext = dial
+	return sf
+}
+
 // AddRemoteServer adds a broker URI to the list of brokers to be used.
 // The format should be scheme://host:port
-// Default values for hostname is "127.0.0.1", for schema is "tcp://".
+// Default values for hostname are "127.0.0.1", for schema is "tcp://".
 // An example broker URI would look like: tcp://foobar.com:1204
 func (sf *ClientOption) AddRemoteServer(server string) error {
 	if len(server) > 0 && server[0] == ':' {

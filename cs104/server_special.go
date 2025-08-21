@@ -98,7 +98,7 @@ func (sf *serverSpec) running() {
 		}
 
 		sf.Debug("connecting server %+v", sf.option.server)
-		conn, err := openConnection(sf.option.server, sf.option.TLSConfig, sf.config.ConnectTimeout0)
+		conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.config.ConnectTimeout0, nil)
 		if err != nil {
 			sf.Error("connect failed, %v", err)
 			if !sf.option.autoReconnect {

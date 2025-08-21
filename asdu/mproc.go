@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// 在监视方向过程信息的应用服务数据单元
+// Application Service Data Units (ASDUs) for process information in the monitoring direction
 
 // checkValid check common parameter of request is valid
 func checkValid(c Connect, typeID TypeID, isSequence bool, infosLen int) error {
@@ -48,7 +48,7 @@ type SinglePointInfo struct {
 	Time time.Time
 }
 
-// single sends a type identification [M_SP_NA_1], [M_SP_TA_1] or [M_SP_TB_1].单点信息
+// single sends a type identification [M_SP_NA_1], [M_SP_TA_1] or [M_SP_TB_1]. Single-point information
 // [M_SP_NA_1] See companion standard 101,subclass 7.3.1.1
 // [M_SP_TA_1] See companion standard 101,subclass 7.3.1.2
 // [M_SP_TB_1] See companion standard 101,subclass 7.3.1.22
@@ -94,19 +94,18 @@ func single(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	return c.Send(u)
 }
 
-// Single sends a type identification [M_SP_NA_1].不带时标单点信息
-// [M_SP_NA_1] See companion standard 101,subclass 7.3.1.1
-// 传送原因(coa)用于
-// 监视方向：
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Single sends a type identification [M_SP_NA_1]. Single-point information without timestamp
+// [M_SP_NA_1] See companion standard 101, subclass 7.3.1.1
+// Cause of transmission (coa) used for monitoring direction:
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func Single(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...SinglePointInfo) error {
 	if !(coa.Cause == Background || coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal ||
@@ -116,14 +115,13 @@ func Single(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, 
 	return single(c, M_SP_NA_1, isSequence, coa, ca, infos...)
 }
 
-// SingleCP24Time2a sends a type identification [M_SP_TA_1],带时标CP24Time2a的单点信息，只有(SQ = 0)单个信息元素集合
-// [M_SP_TA_1] See companion standard 101,subclass 7.3.1.2
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// SingleCP24Time2a sends a type identification [M_SP_TA_1]. Single-point information with CP24Time2a timestamp, only (SQ = 0) single information elements
+// [M_SP_TA_1] See companion standard 101, subclass 7.3.1.2
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func SingleCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...SinglePointInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -132,14 +130,13 @@ func SingleCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos .
 	return single(c, M_SP_TA_1, false, coa, ca, infos...)
 }
 
-// SingleCP56Time2a sends a type identification [M_SP_TB_1].带时标CP56Time2a的单点信息,只有(SQ = 0)单个信息元素集合
-// [M_SP_TB_1] See companion standard 101,subclass 7.3.1.22
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// SingleCP56Time2a sends a type identification [M_SP_TB_1]. Single-point information with CP56Time2a timestamp, only (SQ = 0) single information elements
+// [M_SP_TB_1] See companion standard 101, subclass 7.3.1.22
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func SingleCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...SinglePointInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -158,7 +155,7 @@ type DoublePointInfo struct {
 	Time time.Time
 }
 
-// double sends a type identification [M_DP_NA_1], [M_DP_TA_1] or [M_DP_TB_1].双点信息
+// double sends a type identification [M_DP_NA_1], [M_DP_TA_1] or [M_DP_TB_1]. Double-point information
 // [M_DP_NA_1] See companion standard 101,subclass 7.3.1.3
 // [M_DP_TA_1] See companion standard 101,subclass 7.3.1.4
 // [M_DP_TB_1] See companion standard 101,subclass 7.3.1.23
@@ -200,19 +197,18 @@ func double(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	return c.Send(u)
 }
 
-// Double sends a type identification [M_DP_NA_1].双点信息
-// [M_DP_NA_1] See companion standard 101,subclass 7.3.1.3
-// 传送原因(coa)用于
-// 监视方向：
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Double sends a type identification [M_DP_NA_1]. Double-point information
+// [M_DP_NA_1] See companion standard 101, subclass 7.3.1.3
+// Cause of transmission (coa) used for monitoring direction:
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func Double(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...DoublePointInfo) error {
 	if !(coa.Cause == Background || coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal ||
@@ -222,14 +218,13 @@ func Double(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, 
 	return double(c, M_DP_NA_1, isSequence, coa, ca, infos...)
 }
 
-// DoubleCP24Time2a sends a type identification [M_DP_TA_1] .带CP24Time2a双点信息,只有(SQ = 0)单个信息元素集合
-// [M_DP_TA_1] See companion standard 101,subclass 7.3.1.4
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// DoubleCP24Time2a sends a type identification [M_DP_TA_1]. Double-point information with CP24Time2a timestamp, only (SQ = 0) single information elements
+// [M_DP_TA_1] See companion standard 101, subclass 7.3.1.4
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func DoubleCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...DoublePointInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -238,14 +233,13 @@ func DoubleCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos .
 	return double(c, M_DP_TA_1, false, coa, ca, infos...)
 }
 
-// DoubleCP56Time2a sends a type identification [M_DP_TB_1].带CP56Time2a的双点信息,只有(SQ = 0)单个信息元素集合
-// [M_DP_TB_1] See companion standard 101,subclass 7.3.1.23
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// DoubleCP56Time2a sends a type identification [M_DP_TB_1]. Double-point information with CP56Time2a timestamp, only (SQ = 0) single information elements
+// [M_DP_TB_1] See companion standard 101, subclass 7.3.1.23
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func DoubleCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...DoublePointInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -264,7 +258,7 @@ type StepPositionInfo struct {
 	Time time.Time
 }
 
-// step sends a type identification [M_ST_NA_1], [M_ST_TA_1] or [M_ST_TB_1].步位置信息
+// step sends a type identification [M_ST_NA_1], [M_ST_TA_1] or [M_ST_TB_1]. Step position information
 // [M_ST_NA_1] See companion standard 101, subclass 7.3.1.5
 // [M_ST_TA_1] See companion standard 101, subclass 7.3.1.6
 // [M_ST_TB_1] See companion standard 101, subclass 7.3.1.24
@@ -306,19 +300,18 @@ func step(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, ca
 	return c.Send(u)
 }
 
-// Step sends a type identification [M_ST_NA_1].步位置信息
+// Step sends a type identification [M_ST_NA_1]. Step position information
 // [M_ST_NA_1] See companion standard 101, subclass 7.3.1.5
-// 传送原因(coa)用于
-// 监视方向：
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for monitoring direction:
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func Step(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...StepPositionInfo) error {
 	if !(coa.Cause == Background || coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal ||
@@ -328,14 +321,13 @@ func Step(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, in
 	return step(c, M_ST_NA_1, isSequence, coa, ca, infos...)
 }
 
-// StepCP24Time2a sends a type identification [M_ST_TA_1].带时标CP24Time2a的双点信息,只有(SQ = 0)单个信息元素集合
-// [M_ST_TA_1] See companion standard 101, subclass 7.3.1.5
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// StepCP24Time2a sends a type identification [M_ST_TA_1]. Step position information with CP24Time2a timestamp, only (SQ = 0) single information elements
+// [M_ST_TA_1] See companion standard 101, subclass 7.3.1.6
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func StepCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...StepPositionInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -344,14 +336,13 @@ func StepCP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...
 	return step(c, M_ST_TA_1, false, coa, ca, infos...)
 }
 
-// StepCP56Time2a sends a type identification [M_ST_TB_1].带时标CP56Time2a的双点信息,只有(SQ = 0)单个信息元素集合
+// StepCP56Time2a sends a type identification [M_ST_TB_1]. Step position information with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_ST_TB_1] See companion standard 101, subclass 7.3.1.24
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 远方命令引起的返送信息
-// <12> := 当地命令引起的返送信息
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by remote command
+// <12> := Return information caused by local command
 func StepCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...StepPositionInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal) {
@@ -370,7 +361,7 @@ type BitString32Info struct {
 	Time time.Time
 }
 
-// bitString32 sends a type identification [M_BO_NA_1], [M_BO_TA_1] or [M_BO_TB_1].比特位串
+// bitString32 sends a type identification [M_BO_NA_1], [M_BO_TA_1] or [M_BO_TB_1]. Bitstring (32 bits)
 // [M_ST_NA_1] See companion standard 101, subclass 7.3.1.7
 // [M_ST_TA_1] See companion standard 101, subclass 7.3.1.8
 // [M_ST_TB_1] See companion standard 101, subclass 7.3.1.25
@@ -412,17 +403,16 @@ func bitString32(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmiss
 	return c.Send(u)
 }
 
-// BitString32 sends a type identification [M_BO_NA_1].比特位串
+// BitString32 sends a type identification [M_BO_NA_1]. Bitstring (32 bits)
 // [M_ST_NA_1] See companion standard 101, subclass 7.3.1.7
-// 传送原因(coa)用于
-// 监视方向：
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for monitoring direction:
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func BitString32(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...BitString32Info) error {
 	if !(coa.Cause == Background || coa.Cause == Spontaneous || coa.Cause == Request ||
 		(coa.Cause >= InterrogatedByStation && coa.Cause <= InterrogatedByGroup16)) {
@@ -431,12 +421,11 @@ func BitString32(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonA
 	return bitString32(c, M_BO_NA_1, isSequence, coa, ca, infos...)
 }
 
-// BitString32CP24Time2a sends a type identification [M_BO_TA_1].带时标CP24Time2a比特位串，只有(SQ = 0)单个信息元素集合
+// BitString32CP24Time2a sends a type identification [M_BO_TA_1]. Bitstring (32 bits) with CP24Time2a timestamp, only (SQ = 0) single information elements
 // [M_ST_TA_1] See companion standard 101, subclass 7.3.1.8
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func BitString32CP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...BitString32Info) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -444,12 +433,11 @@ func BitString32CP24Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, in
 	return bitString32(c, M_BO_TA_1, false, coa, ca, infos...)
 }
 
-// BitString32CP56Time2a sends a type identification [M_BO_TB_1].带时标CP56Time2a比特位串，只有(SQ = 0)单个信息元素集合
+// BitString32CP56Time2a sends a type identification [M_BO_TB_1]. Bitstring (32 bits) with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_ST_TB_1] See companion standard 101, subclass 7.3.1.25
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func BitString32CP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...BitString32Info) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -467,11 +455,11 @@ type MeasuredValueNormalInfo struct {
 	Time time.Time
 }
 
-// measuredValueNormal sends a type identification [M_ME_NA_1], [M_ME_TA_1],[ M_ME_TD_1] or [M_ME_ND_1].测量值,规一化值
+// measuredValueNormal sends a type identification [M_ME_NA_1], [M_ME_TA_1], [M_ME_TD_1] or [M_ME_ND_1]. Measured value, normalized value
 // [M_ME_NA_1] See companion standard 101, subclass 7.3.1.9
 // [M_ME_TA_1] See companion standard 101, subclass 7.3.1.10
 // [M_ME_TD_1] See companion standard 101, subclass 7.3.1.26
-// [M_ME_ND_1] See companion standard 101, subclass 7.3.1.21， The quality descriptor must default to asdu.GOOD
+// [M_ME_ND_1] See companion standard 101, subclass 7.3.1.21. The quality descriptor must default to asdu.GOOD
 func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, ca CommonAddr, attrs ...MeasuredValueNormalInfo) error {
 	if err := checkValid(c, typeID, isSequence, len(attrs)); err != nil {
 		return err
@@ -503,7 +491,7 @@ func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 			u.AppendBytes(byte(v.Qds)).AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_ME_TD_1:
 			u.AppendBytes(byte(v.Qds)).AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_ME_ND_1: // 不带品质
+		case M_ME_ND_1: // without quality
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -511,18 +499,17 @@ func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	return c.Send(u)
 }
 
-// MeasuredValueNormal sends a type identification [M_ME_NA_1].测量值,规一化值
+// MeasuredValueNormal sends a type identification [M_ME_NA_1]. Measured value, normalized value
 // [M_ME_NA_1] See companion standard 101, subclass 7.3.1.9
-// 传送原因(coa)用于
-// 监视方向：
-// <1> := 周期/循环
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for monitoring direction:
+// <1> := Periodic/cyclic
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func MeasuredValueNormal(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueNormalInfo) error {
 	if !(coa.Cause == Periodic || coa.Cause == Background ||
 		coa.Cause == Spontaneous || coa.Cause == Request ||
@@ -532,12 +519,11 @@ func MeasuredValueNormal(c Connect, isSequence bool, coa CauseOfTransmission, ca
 	return measuredValueNormal(c, M_ME_NA_1, isSequence, coa, ca, infos...)
 }
 
-// MeasuredValueNormalCP24Time2a sends a type identification [M_ME_TA_1].带时标CP24Time2a的测量值,规一化值,只有(SQ = 0)单个信息元素集合
+// MeasuredValueNormalCP24Time2a sends a type identification [M_ME_TA_1]. Measured value, normalized value with CP24Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TA_1] See companion standard 101, subclass 7.3.1.10
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueNormalCP24Time2a(c Connect, coa CauseOfTransmission,
 	ca CommonAddr, infos ...MeasuredValueNormalInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
@@ -546,12 +532,11 @@ func MeasuredValueNormalCP24Time2a(c Connect, coa CauseOfTransmission,
 	return measuredValueNormal(c, M_ME_TA_1, false, coa, ca, infos...)
 }
 
-// MeasuredValueNormalCP56Time2a sends a type identification [ M_ME_TD_1] 带时标CP57Time2a的测量值,规一化值,只有(SQ = 0)单个信息元素集合
+// MeasuredValueNormalCP56Time2a sends a type identification [M_ME_TD_1]. Measured value, normalized value with CP56Time2a timestamp, only (SQ = 0) single information elements
 // [M_ME_TD_1] See companion standard 101, subclass 7.3.1.26
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
-// <5> := 被请求
+// Cause of transmission (coa) used for monitoring direction:
+// <3> := Spontaneous
+// <5> := Requested
 func MeasuredValueNormalCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueNormalInfo) error {
 	if !(coa.Cause == Spontaneous || coa.Cause == Request) {
 		return ErrCmdCause
@@ -559,19 +544,18 @@ func MeasuredValueNormalCP56Time2a(c Connect, coa CauseOfTransmission, ca Common
 	return measuredValueNormal(c, M_ME_TD_1, false, coa, ca, infos...)
 }
 
-// MeasuredValueNormalNoQuality sends a type identification [M_ME_ND_1].不带品质的测量值,规一化值
-// [M_ME_ND_1] See companion standard 101, subclass 7.3.1.21，
+// MeasuredValueNormalNoQuality sends a type identification [M_ME_ND_1]. Measured value, normalized value without quality
+// [M_ME_ND_1] See companion standard 101, subclass 7.3.1.21
 // The quality descriptor must default to asdu.GOOD
-// 传送原因(coa)用于
-// 监视方向：
-// <1> := 周期/循环
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for monitoring direction:
+// <1> := Periodic/cyclic
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// ...
+// <36> := Response to group 16 interrogation
 func MeasuredValueNormalNoQuality(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...MeasuredValueNormalInfo) error {
 	if !(coa.Cause == Periodic || coa.Cause == Background ||
 		coa.Cause == Spontaneous || coa.Cause == Request ||

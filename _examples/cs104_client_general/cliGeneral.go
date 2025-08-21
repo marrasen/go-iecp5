@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"os"
+	"os/signal"
 
 	"github.com/marrasen/go-iecp5/asdu"
 	"github.com/marrasen/go-iecp5/clog"
@@ -26,14 +27,16 @@ func main() {
 	client.SetLogLevel(clog.LevelError)
 
 	client.SetOnConnectHandler(func(c *cs104.Client) {
-		c.SendStartDt() // 发送startDt激活指令
+		fmt.Println("Connected")
+		c.SendStartDt() // Send startDt activation command
 	})
 	client.SetOnActivatedHandler(func(c *cs104.Client) {
+		fmt.Println("Activated, sending interrogation command")
 		err := c.InterrogationCmd(asdu.CauseOfTransmission{
 			IsTest:     false,
 			IsNegative: false,
 			Cause:      asdu.Activation,
-		}, asdu.CommonAddr(1), asdu.QOIGroup1)
+		}, asdu.CommonAddr(1), asdu.QOIStation)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -45,11 +48,18 @@ func main() {
 		panic(fmt.Errorf("Failed to connect. error:%v\n", err))
 	}
 
-	for {
-		time.Sleep(time.Second * 100)
-	}
-
+	// Wait for Ctrl+C (SIGINT) to gracefully shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	<-sigCh
+	fmt.Println("Interrupt received, shutting down...")
+	// Attempt to stop data transfer gracefully
+	client.SendStopDt()
+	// Close client (cancels internal context and stops internal loops)
+	_ = client.Close()
+	fmt.Println("Shutdown complete")
 }
+
 func (myClient) InterrogationHandler(c asdu.Connect, a *asdu.ASDU) error {
 	fmt.Printf("InterrogationHandler: %v\n", a)
 	return nil

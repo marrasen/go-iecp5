@@ -116,18 +116,24 @@ func (sf *Client) SetOnDeactivatedHandler(f func(c *Client)) *Client {
 	return sf
 }
 
-// Start start the server,and return quickly,if it nil,the server will disconnected background,other failed
+// Start starts the client using a background context. For context-aware cancellation,
+// prefer StartContext.
 func (sf *Client) Start() error {
+	return sf.StartContext(context.Background())
+}
+
+// StartContext starts the client with the provided parent context. Cancelling the context
+// will gracefully shut down the connection and all internal goroutines.
+func (sf *Client) StartContext(parent context.Context) error {
 	if sf.option.server == nil {
 		return errors.New("empty remote server")
 	}
-
-	go sf.running()
+	go sf.running(parent)
 	return nil
 }
 
 // running manages the connection lifecycle to the server, handling connection attempts, failures, and disconnections.
-func (sf *Client) running() {
+func (sf *Client) running(parent context.Context) {
 	var ctx context.Context
 
 	sf.rwMux.Lock()
@@ -135,7 +141,7 @@ func (sf *Client) running() {
 		sf.rwMux.Unlock()
 		return
 	}
-	ctx, sf.closeCancel = context.WithCancel(context.Background())
+	ctx, sf.closeCancel = context.WithCancel(parent)
 	sf.rwMux.Unlock()
 	defer sf.setConnectStatus(initial)
 
@@ -147,7 +153,7 @@ func (sf *Client) running() {
 		}
 
 		sf.Debug("connecting server %+v", sf.option.server)
-		conn, err := openConnection(sf.option.server, sf.option.TLSConfig, sf.option.config.ConnectTimeout0)
+		conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.option.config.ConnectTimeout0, sf.option.DialContext)
 		if err != nil {
 			sf.Error("connect failed, %v", err)
 			if !sf.option.autoReconnect {

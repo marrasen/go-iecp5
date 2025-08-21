@@ -475,6 +475,11 @@ func (sf *ASDU) String() string {
 		p := sf.GetParameterActivation()
 		fmt.Fprintf(&b, " IOA=%d QPA=%d", p.Ioa, p.Qpa)
 
+	// System command: Interrogation Command
+	case C_IC_NA_1:
+		ioa, qoi := sf.GetInterrogationCmd()
+		fmt.Fprintf(&b, " IOA=%d QOI=%d", ioa, byte(qoi))
+
 	default:
 		// Unknown or not yet formatted types: provide concise summary without dumping raw bytes
 		n := int(sf.Variable.Number)
