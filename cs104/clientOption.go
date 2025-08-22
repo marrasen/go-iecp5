@@ -10,19 +10,16 @@ import (
 	"net"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/marrasen/go-iecp5/asdu"
 )
 
 // ClientOption client configuration
 type ClientOption struct {
-	config            Config
-	params            asdu.Params
-	server            *url.URL      // Connected server endpoint
-	autoReconnect     bool          // Enable auto reconnect
-	reconnectInterval time.Duration // Reconnection interval
-	TLSConfig         *tls.Config   // TLS configuration
+	config    Config
+	params    asdu.Params
+	server    *url.URL    // Connected server endpoint
+	TLSConfig *tls.Config // TLS configuration
 	// DialContext allows providing a custom dialer (e.g., SSH jump). If nil, net.Dialer is used.
 	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
 }
@@ -33,8 +30,6 @@ func NewOption() *ClientOption {
 		DefaultConfig(),
 		*asdu.ParamsWide,
 		nil,
-		true,
-		DefaultReconnectInterval,
 		nil,
 		nil,
 	}
@@ -57,20 +52,6 @@ func (sf *ClientOption) SetParams(p *asdu.Params) *ClientOption {
 	} else {
 		sf.params = *p
 	}
-	return sf
-}
-
-// SetReconnectInterval set tcp  reconnect the host interval when connect failed after try
-func (sf *ClientOption) SetReconnectInterval(t time.Duration) *ClientOption {
-	if t > 0 {
-		sf.reconnectInterval = t
-	}
-	return sf
-}
-
-// SetAutoReconnect enable auto reconnect
-func (sf *ClientOption) SetAutoReconnect(b bool) *ClientOption {
-	sf.autoReconnect = b
 	return sf
 }
 

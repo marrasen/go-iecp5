@@ -7,9 +7,7 @@ package cs104
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"sync/atomic"
-	"time"
 
 	"github.com/marrasen/go-iecp5/asdu"
 	"github.com/marrasen/go-iecp5/clog"
@@ -21,7 +19,7 @@ type ServerSpecial interface {
 
 	IsConnected() bool
 	IsClosed() bool
-	Start() error
+	Start(ctx context.Context) error
 	Close() error
 
 	SetOnConnectHandler(f func(c asdu.Connect))
@@ -67,58 +65,38 @@ func (sf *serverSpec) SetConnectionLostHandler(f func(c asdu.Connect)) {
 }
 
 // Start begins the server's operation and establishes a connection to the remote server if specified.
-// It returns an error if the remote server is not configured.
-func (sf *serverSpec) Start() error {
-	if sf.option.server == nil {
-		return errors.New("empty remote server")
-	}
-
-	go sf.running()
-	return nil
-}
-
-// running manages the server connection lifecycle, including establishing, monitoring, and reconnecting if needed.
-func (sf *serverSpec) running() {
-	var ctx context.Context
-
+func (sf *serverSpec) Start(ctx context.Context) error {
 	sf.rwMux.Lock()
 	if !atomic.CompareAndSwapUint32(&sf.status, initial, disconnected) {
 		sf.rwMux.Unlock()
-		return
+		return errors.New("server already started")
 	}
 	ctx, sf.closeCancel = context.WithCancel(context.Background())
 	sf.rwMux.Unlock()
 	defer sf.setConnectStatus(initial)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		sf.Debug("connecting server %+v", sf.option.server)
-		conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.config.ConnectTimeout0, nil)
-		if err != nil {
-			sf.Error("connect failed, %v", err)
-			if !sf.option.autoReconnect {
-				return
-			}
-			time.Sleep(sf.option.reconnectInterval)
-			continue
-		}
-		sf.Debug("connect success")
-		sf.conn = conn
-		sf.run(ctx)
-		sf.Debug("disconnected server %+v", sf.option.server)
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			// 随机500ms-1s的重试，避免快速重试造成服务器许多无效连接
-			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
-		}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
+
+	sf.Debug("connecting server %+v", sf.option.server)
+	conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.config.ConnectTimeout0, nil)
+	if err != nil {
+		sf.Error("connect failed, %v", err)
+		return err
+	}
+	sf.Debug("connect success")
+	sf.conn = conn
+	err = sf.run(ctx)
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		sf.Debug("disconnected, %v", err)
+	} else {
+		sf.Error("run failed, %v", err)
+	}
+	sf.Debug("disconnected server %+v", sf.option.server)
+	return err
 }
 
 func (sf *serverSpec) IsClosed() bool {

@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -116,65 +115,39 @@ func (sf *Client) SetOnDeactivatedHandler(f func(c *Client)) *Client {
 	return sf
 }
 
-// Start starts the client using a background context. For context-aware cancellation,
-// prefer StartContext.
-func (sf *Client) Start() error {
-	return sf.StartContext(context.Background())
-}
-
-// StartContext starts the client with the provided parent context. Cancelling the context
-// will gracefully shut down the connection and all internal goroutines.
-func (sf *Client) StartContext(parent context.Context) error {
-	if sf.option.server == nil {
-		return errors.New("empty remote server")
-	}
-	go sf.running(parent)
-	return nil
-}
-
-// running manages the connection lifecycle to the server, handling connection attempts, failures, and disconnections.
-func (sf *Client) running(parent context.Context) {
-	var ctx context.Context
-
+// Start manages the connection lifecycle to the server, handling connection attempts, failures, and disconnections.
+func (sf *Client) Start(ctx context.Context) error {
 	sf.rwMux.Lock()
 	if !atomic.CompareAndSwapUint32(&sf.status, initial, disconnected) {
 		sf.rwMux.Unlock()
-		return
+		return errors.New("client already started")
 	}
-	ctx, sf.closeCancel = context.WithCancel(parent)
+	ctx, sf.closeCancel = context.WithCancel(ctx)
 	sf.rwMux.Unlock()
 	defer sf.setConnectStatus(initial)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		sf.Debug("connecting server %+v", sf.option.server)
-		conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.option.config.ConnectTimeout0, sf.option.DialContext)
-		if err != nil {
-			sf.Error("connect failed, %v", err)
-			if !sf.option.autoReconnect {
-				return
-			}
-			time.Sleep(sf.option.reconnectInterval)
-			continue
-		}
-		sf.Debug("connect success")
-		sf.conn = conn
-		sf.run(ctx)
-
-		sf.Debug("disconnected server %+v", sf.option.server)
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			// Retry after a random 500ms–1s delay to avoid rapid retries causing many invalid server connections
-			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
-		}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
+
+	sf.Debug("connecting server %+v", sf.option.server)
+	conn, err := openConnection(ctx, sf.option.server, sf.option.TLSConfig, sf.option.config.ConnectTimeout0, sf.option.DialContext)
+	if err != nil {
+		sf.Error("connect failed, %v", err)
+		return err
+	}
+	sf.Debug("connect success")
+	sf.conn = conn
+	err = sf.run(ctx)
+
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		sf.Debug("disconnected, %v", err)
+	} else {
+		sf.Error("run failed, %v", err)
+	}
+	return err
 }
 
 func (sf *Client) recvLoop() {
@@ -269,9 +242,9 @@ func (sf *Client) sendLoop() {
 }
 
 // run is the big fat state machine.
-func (sf *Client) run(ctx context.Context) {
+func (sf *Client) run(ctx context.Context) error {
 	sf.Debug("run started!")
-	// before any thing make sure init
+	// before anything make sure init
 	sf.cleanUp()
 
 	sf.ctx, sf.cancel = context.WithCancel(ctx)
@@ -314,7 +287,7 @@ func (sf *Client) run(ctx context.Context) {
 	}
 
 	defer func() {
-		// default: STOPDT, when connected establish and not enable "data transfer" yet
+		// default: STOPDT, when connection established and not enabled "data transfer" yet
 		atomic.StoreUint32(&sf.isActive, inactive)
 		sf.setConnectStatus(disconnected)
 		checkTicker.Stop()
@@ -333,20 +306,20 @@ func (sf *Client) run(ctx context.Context) {
 				idleTimeout3Sine = time.Now()
 				continue
 			case <-sf.ctx.Done():
-				return
+				return sf.ctx.Err()
 			default: // make no block
 			}
 		}
 		select {
 		case <-sf.ctx.Done():
-			return
+			return sf.ctx.Err()
 		case now := <-checkTicker.C:
 			// check all timeouts
 			if now.Sub(testFrAliveSendSince) >= sf.option.config.SendUnAckTimeout1 ||
 				now.Sub(sf.startDtActiveSendSince.Load().(time.Time)) >= sf.option.config.SendUnAckTimeout1 ||
 				now.Sub(sf.stopDtActiveSendSince.Load().(time.Time)) >= sf.option.config.SendUnAckTimeout1 {
 				sf.Error("test frame alive confirm timeout t₁")
-				return
+				return errors.New("test frame alive confirm timeout t₁")
 			}
 			// check oldest unacknowledged outbound
 			if sf.ackNoSend != sf.seqNoSend &&
@@ -354,7 +327,7 @@ func (sf *Client) run(ctx context.Context) {
 				now.Sub(sf.pending[0].sendTime) >= sf.option.config.SendUnAckTimeout1 {
 				sf.ackNoSend++
 				sf.Error("fatal transmission timeout t₁")
-				return
+				return errors.New("fatal transmission timeout t₁")
 			}
 
 			// If the earliest sent I-frame has timed out, send an S-frame in response
@@ -380,7 +353,7 @@ func (sf *Client) run(ctx context.Context) {
 				sf.Debug("RX sFrame %v", head)
 				if !sf.updateAckNoOut(head.rcvSN) {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
-					return
+					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
 			case iAPCI:
@@ -391,7 +364,7 @@ func (sf *Client) run(ctx context.Context) {
 				}
 				if !sf.updateAckNoOut(head.rcvSN) || head.sendSN != sf.seqNoRcv {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
-					return
+					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
 				sf.rcvASDU <- asduVal

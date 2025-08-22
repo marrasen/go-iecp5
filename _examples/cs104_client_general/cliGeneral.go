@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -43,21 +44,16 @@ func main() {
 		}
 	})
 
-	err = client.Start()
+	notifyContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer stop()
+
+	err = client.Start(notifyContext)
 	if err != nil {
-		panic(fmt.Errorf("Failed to connect. error:%v\n", err))
+		fmt.Printf("Failed to connect. error:%v\n", err)
+	} else {
+		fmt.Println("Connection closed")
 	}
 
-	// Wait for Ctrl+C (SIGINT) to gracefully shutdown
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
-	<-sigCh
-	fmt.Println("Interrupt received, shutting down...")
-	// Attempt to stop data transfer gracefully
-	client.SendStopDt()
-	// Close client (cancels internal context and stops internal loops)
-	_ = client.Close()
-	fmt.Println("Shutdown complete")
 }
 
 func (myClient) InterrogationHandler(c asdu.Connect, a *asdu.ASDU) error {

@@ -6,6 +6,7 @@ package cs104
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"strings"
@@ -154,7 +155,7 @@ func (sf *SrvSession) sendLoop() {
 }
 
 // run is the big fat state machine.
-func (sf *SrvSession) run(ctx context.Context) {
+func (sf *SrvSession) run(ctx context.Context) error {
 	sf.Debug("run started!")
 	// before any thing make sure init
 	sf.cleanUp()
@@ -174,9 +175,9 @@ func (sf *SrvSession) run(ctx context.Context) {
 	var willNotTimeout = time.Now().Add(time.Hour * 24 * 365 * 100)
 
 	var unAckRcvSince = willNotTimeout
-	var idleTimeout3Sine = time.Now()         // 空闲间隔发起testFrAlive
-	var testFrAliveSendSince = willNotTimeout // 当发起testFrAlive时,等待确认回复的超时间隔
-	// 对于server端，无需对应的U-Frame 无需判断
+	var idleTimeout3Sine = time.Now()         // On idle interval, initiate testFrAlive
+	var testFrAliveSendSince = willNotTimeout // When initiating testFrAlive, this is the timeout while waiting for the confirmation response
+	// For the server side, the corresponding U-Frames are not required and do not need to be handled here
 	// var startDtActiveSendSince = willNotTimeout
 	// var stopDtActiveSendSince = willNotTimeout
 
@@ -209,7 +210,7 @@ func (sf *SrvSession) run(ctx context.Context) {
 	defer func() {
 		sf.setConnectStatus(disconnected)
 		checkTicker.Stop()
-		_ = sf.conn.Close() // 连锁引发cancel
+		_ = sf.conn.Close() // Closing the connection triggers cancel (cascade effect)
 		sf.wg.Wait()
 		if sf.connectionLost != nil {
 			sf.connectionLost(sf)
@@ -225,20 +226,20 @@ func (sf *SrvSession) run(ctx context.Context) {
 				idleTimeout3Sine = time.Now()
 				continue
 			case <-sf.ctx.Done():
-				return
+				return ctx.Err()
 			default: // make no block
 			}
 		}
 		select {
 		case <-sf.ctx.Done():
-			return
+			return ctx.Err()
 		case now := <-checkTicker.C:
 			// check all timeouts
 			if now.Sub(testFrAliveSendSince) >= sf.config.SendUnAckTimeout1 {
 				// now.Sub(startDtActiveSendSince) >= t.SendUnAckTimeout1 ||
 				// now.Sub(stopDtActiveSendSince) >= t.SendUnAckTimeout1 ||
 				sf.Error("test frame alive confirm timeout t₁")
-				return
+				return errors.New("test frame alive confirm timeout t₁")
 			}
 			// check oldest unacknowledged outbound
 			if sf.ackNoSend != sf.seqNoSend &&
@@ -246,10 +247,10 @@ func (sf *SrvSession) run(ctx context.Context) {
 				now.Sub(sf.pending[0].sendTime) >= sf.config.SendUnAckTimeout1 {
 				sf.ackNoSend++
 				sf.Error("fatal transmission timeout t₁")
-				return
+				return errors.New("fatal transmission timeout t₁")
 			}
 
-			// 确定最早发送的i-Frame是否超时,超时则回复sFrame
+			// Determine whether the earliest sent I-Frame has timed out; if timed out, respond with an S-Frame
 			if sf.ackNoRcv != sf.seqNoRcv &&
 				(now.Sub(unAckRcvSince) >= sf.config.RecvUnAckTimeout2 ||
 					now.Sub(idleTimeout3Sine) >= timeoutResolution) {
@@ -257,7 +258,7 @@ func (sf *SrvSession) run(ctx context.Context) {
 				sf.ackNoRcv = sf.seqNoRcv
 			}
 
-			// 空闲时间到，发送TestFrActive帧,保活
+			// On idle timeout, send a TestFrActive frame to keep the connection alive
 			if now.Sub(idleTimeout3Sine) >= sf.config.IdleTimeout3 {
 				sendUFrame(uTestFrActive)
 				testFrAliveSendSince = time.Now()
@@ -265,14 +266,14 @@ func (sf *SrvSession) run(ctx context.Context) {
 			}
 
 		case apdu := <-sf.rcvRaw:
-			idleTimeout3Sine = time.Now() // 每收到一个i帧,S帧,U帧, 重置空闲定时器, t3
+			idleTimeout3Sine = time.Now() // Upon receiving any I, S, or U frame, reset the idle timer (t3)
 			apci, asduVal := parse(apdu)
 			switch head := apci.(type) {
 			case sAPCI:
 				sf.Debug("RX sFrame %v", head)
 				if !sf.updateAckNoOut(head.rcvSN) {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
-					return
+					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
 			case iAPCI:
@@ -283,7 +284,7 @@ func (sf *SrvSession) run(ctx context.Context) {
 				}
 				if !sf.updateAckNoOut(head.rcvSN) || head.sendSN != sf.seqNoRcv {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
-					return
+					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
 				sf.rcvASDU <- asduVal
@@ -382,7 +383,7 @@ loop:
 	}
 }
 
-// 回绕机制
+// Wrap-around mechanism
 func seqNoCount(nextAckNo, nextSeqNo uint16) uint16 {
 	if nextAckNo > nextSeqNo {
 		nextSeqNo += 32768
@@ -394,7 +395,7 @@ func (sf *SrvSession) updateAckNoOut(ackNo uint16) (ok bool) {
 	if ackNo == sf.ackNoSend {
 		return true
 	}
-	// new acks validate， ack 不能在 req seq 前面,出错
+	// Validate new acknowledgements; the ack must not acknowledge beyond what has been sent
 	if seqNoCount(sf.ackNoSend, sf.seqNoSend) < seqNoCount(ackNo, sf.seqNoSend) {
 		return false
 	}
