@@ -5,8 +5,10 @@
 package asdu
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // About data unit identification — Application Service Data Unit (ASDU) - Data Unit Identifier
@@ -14,6 +16,32 @@ import (
 // TypeID is the ASDU type identification.
 // See companion standard 101, subclass 7.2.1.
 type TypeID uint8
+
+// reverse maps for JSON string parsing
+var (
+	typeIDByName   map[string]TypeID
+	causeNameByVal map[Cause]string
+	causeByName    map[string]Cause
+)
+
+func init() {
+	// Build reverse map for TypeID using String() for 1..255
+	typeIDByName = make(map[string]TypeID, 256)
+	for i := 1; i <= 255; i++ {
+		name := TypeID(i).String()
+		// Only map non-numeric names (String returns decimal for unknown)
+		if name != strconv.FormatInt(int64(i), 10) {
+			typeIDByName[name] = TypeID(i)
+		}
+	}
+	// Build maps for Cause using causeSemantics
+	causeNameByVal = make(map[Cause]string, len(causeSemantics))
+	causeByName = make(map[string]Cause, len(causeSemantics))
+	for i, s := range causeSemantics {
+		causeNameByVal[Cause(i)] = s
+		causeByName[s] = Cause(i)
+	}
+}
 
 // The standard ASDU type identification.
 // M for monitored information
@@ -291,6 +319,36 @@ func (sf TypeID) String() string {
 	return s
 }
 
+// MarshalJSON encodes TypeID as its string name.
+func (sf TypeID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sf.String())
+}
+
+// UnmarshalJSON decodes a TypeID from a string name or numeric value.
+func (sf *TypeID) UnmarshalJSON(b []byte) error {
+	// Try string first
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		if v, ok := typeIDByName[s]; ok {
+			*sf = v
+			return nil
+		}
+		// also allow numeric strings
+		if n, err2 := strconv.Atoi(s); err2 == nil {
+			*sf = TypeID(n)
+			return nil
+		}
+		return fmt.Errorf("unknown TypeID name: %s", s)
+	}
+	// Then numeric
+	var n int
+	if err := json.Unmarshal(b, &n); err == nil {
+		*sf = TypeID(n)
+		return nil
+	}
+	return fmt.Errorf("invalid TypeID JSON: %s", string(b))
+}
+
 // VariableStruct is variable structure qualifier
 // See companion standard 101, subclass 7.2.2.
 // number <0..127>:  bit0 - bit6
@@ -324,6 +382,39 @@ func (sf VariableStruct) String() string {
 		return fmt.Sprintf("sq,%d", sf.Number)
 	}
 	return fmt.Sprintf("%d", sf.Number)
+}
+
+// MarshalJSON encodes VariableStruct using its String() form.
+func (sf VariableStruct) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sf.String())
+}
+
+// UnmarshalJSON decodes VariableStruct from "sq,<n>" or "<n>" or numeric.
+func (sf *VariableStruct) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		s = strings.TrimSpace(s)
+		if strings.HasPrefix(s, "sq,") {
+			ns := strings.TrimPrefix(s, "sq,")
+			n, err := strconv.Atoi(ns)
+			if err != nil {
+				return err
+			}
+			*sf = VariableStruct{Number: byte(n), IsSequence: true}
+			return nil
+		}
+		if n, err := strconv.Atoi(s); err == nil {
+			*sf = VariableStruct{Number: byte(n)}
+			return nil
+		}
+		return fmt.Errorf("invalid VariableStruct: %s", s)
+	}
+	var n int
+	if err := json.Unmarshal(b, &n); err == nil {
+		*sf = VariableStruct{Number: byte(n)}
+		return nil
+	}
+	return fmt.Errorf("invalid VariableStruct JSON: %s", string(b))
 }
 
 // CauseOfTransmission is the cause of transmission.
@@ -506,6 +597,59 @@ func (sf CauseOfTransmission) String() string {
 		s += ",test"
 	}
 	return s
+}
+
+// MarshalJSON encodes CauseOfTransmission as a string like "Spontaneous,neg,test".
+func (sf CauseOfTransmission) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sf.String())
+}
+
+// UnmarshalJSON decodes CauseOfTransmission from string or number.
+// Accepted string format: "<CauseName>[,neg][,test]".
+func (sf *CauseOfTransmission) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		parts := strings.Split(strings.TrimSpace(s), ",")
+		if len(parts) >= 1 {
+			name := parts[0]
+			if c, ok := causeByName[name]; ok {
+				sf.Cause = c
+				// flags
+				sf.IsNegative = false
+				sf.IsTest = false
+				for _, p := range parts[1:] {
+					pp := strings.TrimSpace(p)
+					if pp == "neg" {
+						sf.IsNegative = true
+					} else if pp == "test" {
+						sf.IsTest = true
+					}
+				}
+				return nil
+			}
+			// allow numeric strings
+			if n, err2 := strconv.Atoi(name); err2 == nil {
+				sf.Cause = Cause(n)
+				for _, p := range parts[1:] {
+					pp := strings.TrimSpace(p)
+					if pp == "neg" {
+						sf.IsNegative = true
+					} else if pp == "test" {
+						sf.IsTest = true
+					}
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("unknown CauseOfTransmission: %s", s)
+	}
+	// numeric object with flags unsupported; allow simple number
+	var n int
+	if err := json.Unmarshal(b, &n); err == nil {
+		sf.Cause = Cause(n)
+		return nil
+	}
+	return fmt.Errorf("invalid CauseOfTransmission JSON: %s", string(b))
 }
 
 // CommonAddr is a station address.

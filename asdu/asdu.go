@@ -6,6 +6,7 @@
 package asdu
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/bits"
@@ -490,6 +491,365 @@ func (sf *ASDU) String() string {
 	}
 
 	return b.String()
+}
+
+// MarshalJSON encodes ASDU into a JSON object with a dynamic "value" field.
+/*
+TypeScript types for the JSON produced by ASDU.MarshalJSON()
+
+// Base header shared by all ASDUs
+interface ASDUBase {
+  type: TypeString;        // discriminant (TypeID string)
+  variable: string;        // e.g. "sq,3" or "5"
+  cause: string;           // e.g. "Spontaneous[,neg][,test]"
+  origAddr: number;        // 0..255
+  commonAddr: number;      // 1..65535 (65535=broadcast)
+}
+
+type TypeString =
+  | "M_SP_NA_1" | "M_SP_TA_1" | "M_SP_TB_1"
+  | "M_DP_NA_1" | "M_DP_TA_1" | "M_DP_TB_1"
+  | "M_ST_NA_1" | "M_ST_TA_1" | "M_ST_TB_1"
+  | "M_BO_NA_1" | "M_BO_TA_1" | "M_BO_TB_1"
+  | "M_ME_NA_1" | "M_ME_TA_1" | "M_ME_TD_1" | "M_ME_ND_1"
+  | "M_ME_NB_1" | "M_ME_TB_1" | "M_ME_TE_1"
+  | "M_ME_NC_1" | "M_ME_TC_1" | "M_ME_TF_1"
+  | "M_IT_NA_1" | "M_IT_TA_1" | "M_IT_TB_1"
+  | "M_EP_TA_1" | "M_EP_TD_1"
+  | "M_EP_TB_1" | "M_EP_TE_1"
+  | "M_EP_TC_1" | "M_EP_TF_1"
+  | "M_PS_NA_1"
+  | "M_EI_NA_1"
+  | "C_SC_NA_1" | "C_SC_TA_1"
+  | "C_DC_NA_1" | "C_DC_TA_1"
+  | "C_RC_NA_1" | "C_RC_TA_1"
+  | "C_SE_NA_1" | "C_SE_TA_1"
+  | "C_SE_NB_1" | "C_SE_TB_1"
+  | "C_SE_NC_1" | "C_SE_TC_1"
+  | "C_BO_NA_1" | "C_BO_TA_1"
+  | "C_IC_NA_1"
+  | string; // fallback for private/unknown types
+
+// Helpers
+interface Timed { time?: string } // RFC3339Nano; may be absent if not applicable
+
+// Monitored info (arrays)
+type M_SP = ASDUBase & {
+  type: "M_SP_NA_1" | "M_SP_TA_1" | "M_SP_TB_1";
+  value: Array<{ ioa: number; value: boolean; qds: number; } & Timed>;
+};
+
+type M_DP = ASDUBase & {
+  type: "M_DP_NA_1" | "M_DP_TA_1" | "M_DP_TB_1";
+  value: Array<{ ioa: number; value: number; qds: number; } & Timed>; // value in [0..3]
+};
+
+type M_ST = ASDUBase & {
+  type: "M_ST_NA_1" | "M_ST_TA_1" | "M_ST_TB_1";
+  value: Array<{ ioa: number; value: { val: number; transient: boolean }; qds: number; } & Timed>;
+};
+
+type M_BO = ASDUBase & {
+  type: "M_BO_NA_1" | "M_BO_TA_1" | "M_BO_TB_1";
+  value: Array<{ ioa: number; value: number; qds: number; } & Timed>;
+};
+
+type M_ME_Normal_WithQ = ASDUBase & {
+  type: "M_ME_NA_1" | "M_ME_TA_1" | "M_ME_TD_1";
+  value: Array<{ ioa: number; value: number; qds: number; } & Timed>;
+};
+
+type M_ME_Normal_NoQ = ASDUBase & {
+  type: "M_ME_ND_1";
+  value: Array<{ ioa: number; value: number; } & Timed>; // no qds
+};
+
+type M_ME_Scaled = ASDUBase & {
+  type: "M_ME_NB_1" | "M_ME_TB_1" | "M_ME_TE_1";
+  value: Array<{ ioa: number; value: number; qds: number; } & Timed>;
+};
+
+type M_ME_Float = ASDUBase & {
+  type: "M_ME_NC_1" | "M_ME_TC_1" | "M_ME_TF_1";
+  value: Array<{ ioa: number; value: number; qds: number; } & Timed>;
+};
+
+type M_IT = ASDUBase & {
+  type: "M_IT_NA_1" | "M_IT_TA_1" | "M_IT_TB_1";
+  value: Array<{ ioa: number; value: { count: number; seq: number; carry: boolean; adjusted: boolean; invalid: boolean }; } & Timed>;
+};
+
+type M_EP_List = ASDUBase & {
+  type: "M_EP_TA_1" | "M_EP_TD_1";
+  value: Array<{ ioa: number; event: number; qdp: number; msec: number; } & Timed>;
+};
+
+type M_EP_Start = ASDUBase & {
+  type: "M_EP_TB_1" | "M_EP_TE_1";
+  value: { ioa: number; event: number; qdp: number; msec: number; } & Timed;
+};
+
+type M_EP_Oci = ASDUBase & {
+  type: "M_EP_TC_1" | "M_EP_TF_1";
+  value: { ioa: number; oci: number; qdp: number; msec: number; } & Timed;
+};
+
+type M_PS = ASDUBase & {
+  type: "M_PS_NA_1";
+  value: Array<{ ioa: number; scd: number; qds: number }>;
+};
+
+type M_EI = ASDUBase & {
+  type: "M_EI_NA_1";
+  value: { ioa: number; cause: number; localChange: boolean };
+};
+
+// Control direction (single object)
+type C_SC = ASDUBase & {
+  type: "C_SC_NA_1" | "C_SC_TA_1";
+  value: { ioa: number; value: boolean; qoc: number } & Timed;
+};
+
+type C_DC = ASDUBase & {
+  type: "C_DC_NA_1" | "C_DC_TA_1";
+  value: { ioa: number; value: number; qoc: number } & Timed;
+};
+
+type C_RC = ASDUBase & {
+  type: "C_RC_NA_1" | "C_RC_TA_1";
+  value: { ioa: number; value: number; qoc: number } & Timed;
+};
+
+type C_SE_Normal = ASDUBase & {
+  type: "C_SE_NA_1" | "C_SE_TA_1";
+  value: { ioa: number; value: number; qos: number } & Timed;
+};
+
+type C_SE_Scaled = ASDUBase & {
+  type: "C_SE_NB_1" | "C_SE_TB_1";
+  value: { ioa: number; value: number; qos: number } & Timed;
+};
+
+type C_SE_Float = ASDUBase & {
+  type: "C_SE_NC_1" | "C_SE_TC_1";
+  value: { ioa: number; value: number; qos: number } & Timed;
+};
+
+type C_BO = ASDUBase & {
+  type: "C_BO_NA_1" | "C_BO_TA_1";
+  value: { ioa: number; value: number } & Timed;
+};
+
+type C_IC = ASDUBase & {
+  type: "C_IC_NA_1";
+  value: { ioa: number; qoi: number };
+};
+
+// Fallback for unknown/private types
+interface ASDUUnknown extends ASDUBase {
+  value:
+    | { items: number; payload: number } // default fallback used by marshaller for unknown types
+    | any; // in case of future extensions
+}
+
+// Discriminated union for all known shapes
+export type ASDUJson =
+  | M_SP
+  | M_DP
+  | M_ST
+  | M_BO
+  | M_ME_Normal_WithQ
+  | M_ME_Normal_NoQ
+  | M_ME_Scaled
+  | M_ME_Float
+  | M_IT
+  | M_EP_List
+  | M_EP_Start
+  | M_EP_Oci
+  | M_PS
+  | M_EI
+  | C_SC
+  | C_DC
+  | C_RC
+  | C_SE_Normal
+  | C_SE_Scaled
+  | C_SE_Float
+  | C_BO
+  | C_IC
+  | ASDUUnknown;
+*/
+func (sf *ASDU) MarshalJSON() ([]byte, error) {
+	if sf == nil {
+		return []byte("null"), nil
+	}
+	// Helper for time formatting
+	ts := func(t time.Time) string {
+		if t.IsZero() {
+			return ""
+		}
+		return t.Format(time.RFC3339Nano)
+	}
+	// Build dynamic value based on Type
+	var value interface{}
+	switch sf.Type {
+	case M_SP_NA_1, M_SP_TA_1, M_SP_TB_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetSinglePoint() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetDoublePoint() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": byte(it.Value), "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetStepPosition() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": map[string]interface{}{"val": it.Value.Val, "transient": it.Value.HasTransient}, "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetBitString32() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetMeasuredValueNormal() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value.Float64()}
+			if sf.Type != M_ME_ND_1 {
+				m["qds"] = byte(it.Qds)
+			}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetMeasuredValueScaled() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetMeasuredValueFloat() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetIntegratedTotals() {
+			v := it.Value
+			m := map[string]interface{}{
+				"ioa": uint(it.Ioa),
+				"value": map[string]interface{}{
+					"count":    v.CounterReading,
+					"seq":      v.SeqNumber,
+					"carry":    v.HasCarry,
+					"adjusted": v.IsAdjusted,
+					"invalid":  v.IsInvalid,
+				},
+			}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_EP_TA_1, M_EP_TD_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetEventOfProtectionEquipment() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec}
+			if !it.Time.IsZero() {
+				m["time"] = ts(it.Time)
+			}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_EP_TB_1, M_EP_TE_1:
+		it := sf.GetPackedStartEventsOfProtectionEquipment()
+		value = map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
+	case M_EP_TC_1, M_EP_TF_1:
+		it := sf.GetPackedOutputCircuitInfo()
+		value = map[string]interface{}{"ioa": uint(it.Ioa), "oci": byte(it.Oci), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
+	case M_PS_NA_1:
+		arr := []map[string]interface{}{}
+		for _, it := range sf.GetPackedSinglePointWithSCD() {
+			m := map[string]interface{}{"ioa": uint(it.Ioa), "scd": uint32(it.Scd), "qds": byte(it.Qds)}
+			arr = append(arr, m)
+		}
+		value = arr
+	case M_EI_NA_1:
+		ioa, coi := sf.GetEndOfInitialization()
+		value = map[string]interface{}{"ioa": uint(ioa), "cause": byte(coi.Cause), "localChange": coi.IsLocalChange}
+	// Control commands single element
+	case C_SC_NA_1, C_SC_TA_1:
+		cmd := sf.GetSingleCmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+	case C_DC_NA_1, C_DC_TA_1:
+		cmd := sf.GetDoubleCmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+	case C_RC_NA_1, C_RC_TA_1:
+		cmd := sf.GetStepCmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+	case C_SE_NA_1, C_SE_TA_1:
+		cmd := sf.GetSetpointNormalCmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value.Float64(), "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+	case C_SE_NB_1, C_SE_TB_1:
+		cmd := sf.GetSetpointCmdScaled()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+	case C_SE_NC_1, C_SE_TC_1:
+		cmd := sf.GetSetpointFloatCmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+	case C_BO_NA_1, C_BO_TA_1:
+		cmd := sf.GetBitsString32Cmd()
+		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "time": ts(cmd.Time)}
+	case C_IC_NA_1:
+		ioa, qoi := sf.GetInterrogationCmd()
+		value = map[string]interface{}{"ioa": uint(ioa), "qoi": byte(qoi)}
+	default:
+		// For unknown types, return raw payload length as meta
+		value = map[string]interface{}{"items": int(sf.Variable.Number), "payload": len(sf.infoObj)}
+	}
+
+	out := map[string]interface{}{
+		"type":       sf.Type,
+		"variable":   sf.Variable,
+		"cause":      sf.Coa,
+		"origAddr":   sf.OrigAddr,
+		"commonAddr": sf.CommonAddr,
+		"value":      value,
+	}
+	return json.Marshal(out)
 }
 
 // MarshalBinary honors the encoding.BinaryMarshaler interface.
