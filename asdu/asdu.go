@@ -100,15 +100,15 @@ type Identifier struct {
 	// CommonAddr is a station address. Zero is not used.
 	// The width is controlled by Params.CommonAddrSize.
 	// See companion standard 101, subclass 7.2.4.
-	CommonAddr CommonAddr // station address 公共地址是站地址
+	CommonAddr CommonAddr // station address
 }
 
-// String 返回数据单元标识符的信息,例： "TypeID Cause OrigAddr@CommonAddr"
+// String returns the information of data unit identifier, e.g.: "TypeID Cause OrigAddr@CommonAddr"
 func (id Identifier) String() string {
 	if id.OrigAddr == 0 {
-		return fmt.Sprintf("%s %s @%d", id.Type, id.Coa, id.CommonAddr)
+		return fmt.Sprintf("TID<%s> COT<%s> @%d", id.Type, id.Coa, id.CommonAddr)
 	}
-	return fmt.Sprintf("%s %s %d@%d ", id.Type, id.Coa, id.OrigAddr, id.CommonAddr)
+	return fmt.Sprintf("TID<%s> COT<%s> %d@%d ", id.Type, id.Coa, id.OrigAddr, id.CommonAddr)
 }
 
 // ASDU (Application Service Data Unit) is an application message.
@@ -186,7 +186,7 @@ func (sf *ASDU) String() string {
 	// Header: Type, VSQ, Cause, Addresses
 	b.WriteString(sf.Identifier.String())
 	b.WriteByte(' ')
-	b.WriteString(sf.Variable.String())
+	b.WriteString("VSQ<" + sf.Variable.String() + ">")
 	_, _ = fmt.Fprintf(&b, " IOA-Width=%d", sf.InfoObjAddrSize)
 
 	// If there's no information object payload, return header

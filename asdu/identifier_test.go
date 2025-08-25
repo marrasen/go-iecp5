@@ -38,17 +38,17 @@ func TestTypeID_String(t *testing.T) {
 		this TypeID
 		want string
 	}{
-		{"M_SP_NA_1", M_SP_NA_1, "TID<M_SP_NA_1>"},
-		{"M_SP_TB_1", M_SP_TB_1, "TID<M_SP_TB_1>"},
-		{"C_SC_NA_1", C_SC_NA_1, "TID<C_SC_NA_1>"},
-		{"C_SC_TA_1", C_SC_TA_1, "TID<C_SC_TA_1>"},
-		{"M_EI_NA_1", M_EI_NA_1, "TID<M_EI_NA_1>"},
-		{"S_CH_NA_1", S_CH_NA_1, "TID<S_CH_NA_1>"},
-		{"S_US_NA_1", S_US_NA_1, "TID<S_US_NA_1>"},
-		{"C_IC_NA_1", C_IC_NA_1, "TID<C_IC_NA_1>"},
-		{"P_ME_NA_1", P_ME_NA_1, "TID<P_ME_NA_1>"},
-		{"F_FR_NA_1", F_FR_NA_1, "TID<F_FR_NA_1>"},
-		{"no defined", 0, "TID<0>"},
+		{"M_SP_NA_1", M_SP_NA_1, "M_SP_NA_1"},
+		{"M_SP_TB_1", M_SP_TB_1, "M_SP_TB_1"},
+		{"C_SC_NA_1", C_SC_NA_1, "C_SC_NA_1"},
+		{"C_SC_TA_1", C_SC_TA_1, "C_SC_TA_1"},
+		{"M_EI_NA_1", M_EI_NA_1, "M_EI_NA_1"},
+		{"S_CH_NA_1", S_CH_NA_1, "S_CH_NA_1"},
+		{"S_US_NA_1", S_US_NA_1, "S_US_NA_1"},
+		{"C_IC_NA_1", C_IC_NA_1, "C_IC_NA_1"},
+		{"P_ME_NA_1", P_ME_NA_1, "P_ME_NA_1"},
+		{"F_FR_NA_1", F_FR_NA_1, "F_FR_NA_1"},
+		{"no defined", 0, "0"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -104,8 +104,8 @@ func TestVariableStruct_String(t *testing.T) {
 		this VariableStruct
 		want string
 	}{
-		{"no sequence", VariableStruct{Number: 100}, "VSQ<100>"},
-		{"with sequence", VariableStruct{Number: 100, IsSequence: true}, "VSQ<sq,100>"},
+		{"no sequence", VariableStruct{Number: 100}, "100"},
+		{"with sequence", VariableStruct{Number: 100, IsSequence: true}, "sq,100"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -165,10 +165,10 @@ func TestCauseOfTransmission_String(t *testing.T) {
 		this CauseOfTransmission
 		want string
 	}{
-		{"no test and neg", CauseOfTransmission{Cause: Periodic}, "COT<Periodic>"},
-		{"with test", CauseOfTransmission{Cause: Periodic, IsTest: true}, "COT<Periodic,test>"},
-		{"with neg", CauseOfTransmission{Cause: Periodic, IsNegative: true}, "COT<Periodic,neg>"},
-		{"with test and neg", CauseOfTransmission{Cause: Periodic, IsTest: true, IsNegative: true}, "COT<Periodic,neg,test>"},
+		{"no test and neg", CauseOfTransmission{Cause: Periodic}, "Periodic"},
+		{"with test", CauseOfTransmission{Cause: Periodic, IsTest: true}, "Periodic,test"},
+		{"with neg", CauseOfTransmission{Cause: Periodic, IsNegative: true}, "Periodic,neg"},
+		{"with test and neg", CauseOfTransmission{Cause: Periodic, IsTest: true, IsNegative: true}, "Periodic,neg,test"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

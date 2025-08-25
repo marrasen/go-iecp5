@@ -1048,35 +1048,35 @@ func PackedOutputCircuitInfoCP24Time2a(c Connect, coa CauseOfTransmission, ca Co
 	return packedOutputCircuitInfo(c, M_EP_TC_1, coa, ca, info)
 }
 
-// PackedOutputCircuitInfoCP56Time2a sends a type identification [M_EP_TF_1]. 带CP56Time2a继电器保护设备成组输出电路信息
+// PackedOutputCircuitInfoCP56Time2a sends a type identification [M_EP_TF_1]. Packed output circuit information of protection equipment with CP56Time2a timestamp (grouped)
 // [M_EP_TF_1] See companion standard 101, subclass 7.3.1.32
-// 传送原因(coa)用于
-// 监视方向：
-// <3> := 突发(自发)
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <3> := Spontaneous
 func PackedOutputCircuitInfoCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, info PackedOutputCircuitInfoInfo) error {
 	return packedOutputCircuitInfo(c, M_EP_TF_1, coa, ca, info)
 }
 
-// PackedSinglePointWithSCDInfo 带变位检出的成组单点信息
+// PackedSinglePointWithSCDInfo Grouped single-point information with change detection
 type PackedSinglePointWithSCDInfo struct {
 	Ioa InfoObjAddr
 	Scd StatusAndStatusChangeDetection
 	Qds QualityDescriptor
 }
 
-// PackedSinglePointWithSCD sends a type identification [M_PS_NA_1]. 带变位检出的成组单点信息
+// PackedSinglePointWithSCD sends a type identification [M_PS_NA_1]. Grouped single-point information with change detection
 // [M_PS_NA_1] See companion standard 101, subclass 7.3.1.20
-// 传送原因(coa)用于
-// 监视方向：
-// <2> := 背景扫描
-// <3> := 突发(自发)
-// <5> := 被请求
-// <11> := 由远方命令会紖起的返送信息
-// <12> := 由当地命令会紖起的返送信息
-// <20> := 响应站召唤
-// <21> := 响应第1组召唤
-// 至
-// <36> := 响应第16组召唤
+// Cause of transmission (coa) used for
+// Monitoring direction:
+// <2> := Background scan
+// <3> := Spontaneous
+// <5> := Requested
+// <11> := Return information caused by a remote command
+// <12> := Return information caused by a local command
+// <20> := Response to station interrogation
+// <21> := Response to group 1 interrogation
+// to
+// <36> := Response to group 16 interrogation
 func PackedSinglePointWithSCD(c Connect, isSequence bool, coa CauseOfTransmission, ca CommonAddr, infos ...PackedSinglePointWithSCDInfo) error {
 	if !(coa.Cause == Background || coa.Cause == Spontaneous || coa.Cause == Request ||
 		coa.Cause == ReturnInfoRemote || coa.Cause == ReturnInfoLocal ||
@@ -1111,7 +1111,7 @@ func PackedSinglePointWithSCD(c Connect, isSequence bool, coa CauseOfTransmissio
 	return c.Send(u)
 }
 
-// GetSinglePoint [M_SP_NA_1], [M_SP_TA_1] or [M_SP_TB_1] 获取单点信息信息体集合
+// GetSinglePoint [M_SP_NA_1], [M_SP_TA_1] or [M_SP_TB_1] Retrieve a collection of single-point information objects
 func (sf *ASDU) GetSinglePoint() []SinglePointInfo {
 	info := make([]SinglePointInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1144,7 +1144,7 @@ func (sf *ASDU) GetSinglePoint() []SinglePointInfo {
 	return info
 }
 
-// GetDoublePoint [M_DP_NA_1], [M_DP_TA_1] or [M_DP_TB_1] 获得双点信息体集合
+// GetDoublePoint [M_DP_NA_1], [M_DP_TA_1] or [M_DP_TB_1] Retrieve a collection of double-point information objects
 func (sf *ASDU) GetDoublePoint() []DoublePointInfo {
 	info := make([]DoublePointInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1177,7 +1177,7 @@ func (sf *ASDU) GetDoublePoint() []DoublePointInfo {
 	return info
 }
 
-// GetStepPosition [M_ST_NA_1], [M_ST_TA_1] or [M_ST_TB_1] 获得步位置信息体集合
+// GetStepPosition [M_ST_NA_1], [M_ST_TA_1] or [M_ST_TB_1] Retrieve a collection of step position information objects
 func (sf *ASDU) GetStepPosition() []StepPositionInfo {
 	info := make([]StepPositionInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1211,7 +1211,7 @@ func (sf *ASDU) GetStepPosition() []StepPositionInfo {
 	return info
 }
 
-// GetBitString32 [M_BO_NA_1], [M_BO_TA_1] or [M_BO_TB_1] 获得比特位串信息体集合
+// GetBitString32 [M_BO_NA_1], [M_BO_TA_1] or [M_BO_TB_1] Retrieve a collection of bitstring (32-bit) information objects
 func (sf *ASDU) GetBitString32() []BitString32Info {
 	info := make([]BitString32Info, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1246,7 +1246,7 @@ func (sf *ASDU) GetBitString32() []BitString32Info {
 	return info
 }
 
-// GetMeasuredValueNormal [M_ME_NA_1], [M_ME_TA_1],[ M_ME_TD_1] or [M_ME_ND_1] 获得测量值,规一化值信息体集合
+// GetMeasuredValueNormal [M_ME_NA_1], [M_ME_TA_1], [M_ME_TD_1] or [M_ME_ND_1] Retrieve a collection of measured values (normalized) information objects
 func (sf *ASDU) GetMeasuredValueNormal() []MeasuredValueNormalInfo {
 	info := make([]MeasuredValueNormalInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1271,7 +1271,7 @@ func (sf *ASDU) GetMeasuredValueNormal() []MeasuredValueNormalInfo {
 		case M_ME_TD_1:
 			qds = QualityDescriptor(sf.DecodeByte())
 			t = sf.DecodeCP56Time2a()
-		case M_ME_ND_1: // 不带品质
+		case M_ME_ND_1: // without quality
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1285,7 +1285,7 @@ func (sf *ASDU) GetMeasuredValueNormal() []MeasuredValueNormalInfo {
 	return info
 }
 
-// GetMeasuredValueScaled [M_ME_NB_1], [M_ME_TB_1] or [M_ME_TE_1] 获得测量值，标度化值信息体集合
+// GetMeasuredValueScaled [M_ME_NB_1], [M_ME_TB_1] or [M_ME_TE_1] Retrieve a collection of measured values (scaled) information objects
 func (sf *ASDU) GetMeasuredValueScaled() []MeasuredValueScaledInfo {
 	info := make([]MeasuredValueScaledInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1320,7 +1320,7 @@ func (sf *ASDU) GetMeasuredValueScaled() []MeasuredValueScaledInfo {
 	return info
 }
 
-// GetMeasuredValueFloat [M_ME_NC_1], [M_ME_TC_1] or [M_ME_TF_1].获得测量值,短浮点数信息体集合
+// GetMeasuredValueFloat [M_ME_NC_1], [M_ME_TC_1] or [M_ME_TF_1]. Retrieve a collection of measured values (short floating-point) information objects
 func (sf *ASDU) GetMeasuredValueFloat() []MeasuredValueFloatInfo {
 	info := make([]MeasuredValueFloatInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1354,7 +1354,7 @@ func (sf *ASDU) GetMeasuredValueFloat() []MeasuredValueFloatInfo {
 	return info
 }
 
-// GetIntegratedTotals [M_IT_NA_1], [M_IT_TA_1] or [M_IT_TB_1]. 获得累计量信息体集合
+// GetIntegratedTotals [M_IT_NA_1], [M_IT_TA_1] or [M_IT_TB_1]. Retrieve a collection of integrated totals information objects
 func (sf *ASDU) GetIntegratedTotals() []BinaryCounterReadingInfo {
 	info := make([]BinaryCounterReadingInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1386,7 +1386,7 @@ func (sf *ASDU) GetIntegratedTotals() []BinaryCounterReadingInfo {
 	return info
 }
 
-// GetEventOfProtectionEquipment [M_EP_TA_1] [M_EP_TD_1] 获取继电器保护设备事件信息体
+// GetEventOfProtectionEquipment [M_EP_TA_1] [M_EP_TD_1] Retrieve event information objects of protection equipment
 func (sf *ASDU) GetEventOfProtectionEquipment() []EventOfProtectionEquipmentInfo {
 	info := make([]EventOfProtectionEquipmentInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
@@ -1419,7 +1419,7 @@ func (sf *ASDU) GetEventOfProtectionEquipment() []EventOfProtectionEquipmentInfo
 	return info
 }
 
-// GetPackedStartEventsOfProtectionEquipment [M_EP_TB_1] [M_EP_TE_1] 获取继电器保护设备事件信息体
+// GetPackedStartEventsOfProtectionEquipment [M_EP_TB_1] [M_EP_TE_1] Retrieve packed start event information objects of protection equipment
 func (sf *ASDU) GetPackedStartEventsOfProtectionEquipment() PackedStartEventsOfProtectionEquipmentInfo {
 	info := PackedStartEventsOfProtectionEquipmentInfo{}
 
@@ -1442,7 +1442,7 @@ func (sf *ASDU) GetPackedStartEventsOfProtectionEquipment() PackedStartEventsOfP
 	return info
 }
 
-// GetPackedOutputCircuitInfo [M_EP_TC_1] [M_EP_TF_1] 获取继电器保护设备成组输出电路信息信息体
+// GetPackedOutputCircuitInfo [M_EP_TC_1] [M_EP_TF_1] Retrieve packed output circuit information objects of protection equipment
 func (sf *ASDU) GetPackedOutputCircuitInfo() PackedOutputCircuitInfoInfo {
 	info := PackedOutputCircuitInfoInfo{}
 
@@ -1465,7 +1465,7 @@ func (sf *ASDU) GetPackedOutputCircuitInfo() PackedOutputCircuitInfoInfo {
 	return info
 }
 
-// GetPackedSinglePointWithSCD [M_PS_NA_1]. 获得带变位检出的成组单点信息
+// GetPackedSinglePointWithSCD [M_PS_NA_1]. Retrieve grouped single-point information with change detection
 func (sf *ASDU) GetPackedSinglePointWithSCD() []PackedSinglePointWithSCDInfo {
 	info := make([]PackedSinglePointWithSCDInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)

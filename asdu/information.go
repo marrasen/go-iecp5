@@ -4,12 +4,12 @@
 
 package asdu
 
-// about information object 应用服务数据单元 - 信息对象
+// About information object: Application Service Data Unit (ASDU) - Information Object
 
 // InfoObjAddr is the information object address.
 // See companion standard 101, subclass 7.2.5.
 // The width is controlled by Params.InfoObjAddrSize.
-// <0>: 无关的信息对象地址
+// <0>: Irrelevant information object address
 // - width 1: <1..255>
 // - width 2: <1..65535>
 // - width 3: <1..16777215>
@@ -24,8 +24,8 @@ type SinglePoint byte
 
 // SinglePoint defined
 const (
-	SPIOff SinglePoint = iota // 关
-	SPIOn                     // 开
+	SPIOff SinglePoint = iota // off
+	SPIOn                     // on
 )
 
 // Value single point to byte
@@ -39,10 +39,10 @@ type DoublePoint byte
 
 // DoublePoint defined
 const (
-	DPIIndeterminateOrIntermediate DoublePoint = iota // 不确定或中间状态
-	DPIDeterminedOff                                  // 确定状态开
-	DPIDeterminedOn                                   // 确定状态关
-	DPIIndeterminate                                  // 不确定或中间状态
+	DPIIndeterminateOrIntermediate DoublePoint = iota // indeterminate or intermediate state
+	DPIDeterminedOff                                  // determined OFF state
+	DPIDeterminedOn                                   // determined ON state
+	DPIIndeterminate                                  // indeterminate state
 )
 
 // Value double point to byte
@@ -76,7 +76,7 @@ const (
 	QDSGood QualityDescriptor = 0
 )
 
-//QualityDescriptorProtection  Quality descriptor Protection Equipment flags attribute.
+// QualityDescriptorProtection  Quality descriptor Protection Equipment flags attribute.
 // See companion standard 101, subclass 7.2.6.4.
 type QualityDescriptorProtection byte
 
@@ -103,12 +103,12 @@ const (
 )
 
 // StepPosition is a measured value with transient state indication.
-// 带瞬变状态指示的测量值，用于变压器步位置或其它步位置的值
+// Used for transformer tap position or other step positions.
 // See companion standard 101, subclass 7.2.6.5.
 // Val range <-64..63>
 // bit[0-5]: <-64..63>
-// NOTE: bit6 为符号位
-// bit7: 0: 设备未在瞬变状态 1： 设备处于瞬变状态
+// NOTE: bit6 is the sign bit
+// bit7: 0 - device not in transient state; 1 - device in transient state
 type StepPosition struct {
 	Val          int
 	HasTransient bool
@@ -134,8 +134,8 @@ func ParseStepPosition(b byte) StepPosition {
 	return step
 }
 
-// Normalize is a 16-bit normalized value in[-1, 1 − 2⁻¹⁵]..
-// 规一化值 f归一= 32768 * f真实 / 满码值
+// Normalize is a 16-bit normalized value in [-1, 1 − 2⁻¹⁵].
+// Normalization formula: f_normalized = 32768 * f_real / full_scale_value
 // See companion standard 101, subclass 7.2.6.6.
 type Normalize int16
 
@@ -146,12 +146,12 @@ func (sf Normalize) Float64() float64 {
 
 // BinaryCounterReading is binary counter reading
 // See companion standard 101, subclass 7.2.6.9.
-// CounterReading: 计数器读数 [bit0...bit31]
-// SeqNumber: 顺序记法 [bit32...bit40]
-// SQ: 顺序号 [bit32...bit36]
-// CY: 进位 [bit37]
-// CA: 计数量被调整
-// IV: 无效
+// CounterReading: counter value [bit0...bit31]
+// SeqNumber: sequence notation [bit32...bit40]
+// SQ: sequence number [bit32...bit36]
+// CY: carry [bit37]
+// CA: count has been adjusted
+// IV: invalid
 type BinaryCounterReading struct {
 	CounterReading int32
 	SeqNumber      byte
@@ -166,10 +166,10 @@ type SingleEvent byte
 
 // SingleEvent dSequenceNotationefined
 const (
-	SEIndeterminateOrIntermediate SingleEvent = iota // 不确定或中间状态
-	SEDeterminedOff                                  // 确定状态开
-	SEDeterminedOn                                   // 确定状态关
-	SEIndeterminate                                  // 不确定或中间状态
+	SEIndeterminateOrIntermediate SingleEvent = iota // indeterminate or intermediate state
+	SEDeterminedOff                                  // determined OFF state
+	SEDeterminedOn                                   // determined ON state
+	SEIndeterminate                                  // indeterminate state
 )
 
 // StartEvent Start event protection
@@ -178,12 +178,12 @@ type StartEvent byte
 // StartEvent defined
 // See companion standard 101, subclass 7.2.6.11.
 const (
-	SEPGeneralStart          StartEvent = 1 << iota // 总启动
-	SEPStartL1                                      // A相保护启动
-	SEPStartL2                                      // B相保护启动
-	SEPStartL3                                      // C相保护启动
-	SEPStartEarthCurrent                            // 接地电流保护启动
-	SEPStartReverseDirection                        // 反向保护启动
+	SEPGeneralStart          StartEvent = 1 << iota // general start
+	SEPStartL1                                      // phase A protection started
+	SEPStartL2                                      // phase B protection started
+	SEPStartL3                                      // phase C protection started
+	SEPStartEarthCurrent                            // earth current protection started
+	SEPStartReverseDirection                        // reverse direction protection started
 	// other reserved
 )
 
@@ -193,10 +193,10 @@ type OutputCircuitInfo byte
 
 // OutputCircuitInfo defined
 const (
-	OCIGeneralCommand OutputCircuitInfo = 1 << iota // 总命令输出至输出电路
-	OCICommandL1                                    // A 相保护命令输出至输出电路
-	OCICommandL2                                    // B 相保护命令输出至输出电路
-	OCICommandL3                                    // C 相保护命令输出至输出电路
+	OCIGeneralCommand OutputCircuitInfo = 1 << iota // general command output to output circuit
+	OCICommandL1                                    // phase A protection command output to output circuit
+	OCICommandL2                                    // phase B protection command output to output circuit
+	OCICommandL3                                    // phase C protection command output to output circuit
 	// other reserved
 )
 
@@ -243,21 +243,22 @@ const (
 type COICause byte
 
 // COICause defined
-// 0: 当地电源合上
-// 1： 当地手动复位
-// 2： 远方复位
-// <3..31>: 本配讨标准备的标准定义保留
-// <32...127>: 为特定使用保留
+// 0: local power on
+// 1: local manual reset
+// 2: remote reset
+// <3..31>: reserved for standard definitions
+// <32..127>: reserved for special use
 const (
 	COILocalPowerOn COICause = iota
 	COILocalHandReset
 	COIRemoteReset
 )
 
-// CauseOfInitial cause of initial
+// CauseOfInitial cause of initialization
 // Cause:  see COICause
-// IsLocalChange: false - 未改变当地参数的初始化
-//                true - 改变当地参数后的初始化
+// IsLocalChange: false - initialization without local parameter changes
+//
+//	true  - initialization after local parameter changes
 type CauseOfInitial struct {
 	Cause         COICause
 	IsLocalChange bool
@@ -285,7 +286,7 @@ type QualifierOfInterrogation byte
 
 // QualifierOfInterrogation defined
 const (
-	// <1..19>: 为标准定义保留
+	// <1..19>: reserved for standard definitions
 	QOIStation QualifierOfInterrogation = 20 + iota // interrogated by station interrogation
 	QOIGroup1                                       // interrogated by group 1 interrogation
 	QOIGroup2                                       // interrogated by group 2 interrogation
@@ -304,18 +305,18 @@ const (
 	QOIGroup15                                      // interrogated by group 15 interrogation
 	QOIGroup16                                      // interrogated by group 16 interrogation
 
-	// <37..63>：为标准定义保留
-	// <64..255>: 为特定使用保留
+	// <37..63>: reserved for standard definitions
+	// <64..255>: reserved for special use
 
-	// 0:未使用
+	// 0: unused
 	QOIUnused QualifierOfInterrogation = 0
 )
 
-// QCCRequest 请求 [bit0...bit5]
+// QCCRequest request [bit0...bit5]
 // See companion standard 101, subclass 7.2.6.23.
 type QCCRequest byte
 
-// QCCFreeze 冻结 [bit6,bit7]
+// QCCFreeze freeze [bit6,bit7]
 // See companion standard 101, subclass 7.2.6.23.
 type QCCFreeze byte
 
@@ -327,15 +328,15 @@ const (
 	QCCGroup3
 	QCCGroup4
 	QCCTotal
-	// <6..31>: 为标准定义
-	// <32..63>： 为特定使用保留
-	QCCFrzRead          QCCFreeze = 0x00 // 读(无冻结或复位)
-	QCCFrzFreezeNoReset QCCFreeze = 0x40 // 计数量冻结不带复位(被冻结的值为累计量)
-	QCCFrzFreezeReset   QCCFreeze = 0x80 // 计数量冻结带复位(被冻结的值为增量信息)
-	QCCFrzReset         QCCFreeze = 0xc0 // 计数量复位
+	// <6..31>: reserved for standard definitions
+	// <32..63>: reserved for special use
+	QCCFrzRead          QCCFreeze = 0x00 // read (no freeze or reset)
+	QCCFrzFreezeNoReset QCCFreeze = 0x40 // counter freeze without reset (frozen value is the cumulative count)
+	QCCFrzFreezeReset   QCCFreeze = 0x80 // counter freeze with reset (frozen value is the incremental count)
+	QCCFrzReset         QCCFreeze = 0xc0 // counter reset
 )
 
-// QualifierCountCall 计数量召唤命令限定词
+// QualifierCountCall: qualifier for counter interrogation command
 // See companion standard 101, subclass 7.2.6.23.
 type QualifierCountCall struct {
 	Request QCCRequest
@@ -355,7 +356,7 @@ func (sf QualifierCountCall) Value() byte {
 	return byte(sf.Request&0x3f) | byte(sf.Freeze&0xc0)
 }
 
-// QPMCategory 测量参数类别
+// QPMCategory: measurement parameter category
 type QPMCategory byte
 
 // QPMCategory defined
@@ -369,15 +370,15 @@ const (
 	// 5‥31: reserved for standard definitions of sf companion standard (compatible range)
 	// 32‥63: reserved for special use (private range)
 
-	QPMChangeFlag      QPMCategory = 0x40 // bit6 marks local parameter change  当地参数改变
-	QPMInOperationFlag QPMCategory = 0x80 // bit7 marks parameter operation 参数在运行
+	QPMChangeFlag      QPMCategory = 0x40 // bit6 marks local parameter change
+	QPMInOperationFlag QPMCategory = 0x80 // bit7 marks parameter in operation
 )
 
-// QualifierOfParameterMV Qualifier Of Parameter Of Measured Values 测量值参数限定词
+// QualifierOfParameterMV: qualifier of parameters for measured values
 // See companion standard 101, subclass 7.2.6.24.
-// QPMCategory : [bit0...bit5] 参数类型
-// IsChange : [bit6]当地参数改变,false - 未改变,true - 改变
-// IsInOperation : [bit7] 参数在运行,false - 运行, true - 不在运行
+// QPMCategory : [bit0...bit5] parameter category
+// IsChange : [bit6] local parameter change, false - unchanged, true - changed
+// IsInOperation : [bit7] parameter in operation, false - in operation, true - not in operation
 type QualifierOfParameterMV struct {
 	Category      QPMCategory
 	IsChange      bool
@@ -405,18 +406,18 @@ func (sf QualifierOfParameterMV) Value() byte {
 	return v
 }
 
-// QualifierOfParameterAct Qualifier Of Parameter Activation 参数激活限定词
+// QualifierOfParameterAct: qualifier of parameter activation
 // See companion standard 101, subclass 7.2.6.25.
 type QualifierOfParameterAct byte
 
 // QualifierOfParameterAct defined
 const (
 	QPAUnused QualifierOfParameterAct = iota
-	// 激活/停止激活这之前装载的参数(信息对象地址=0)
+	// Activate/deactivate the previously loaded parameters (information object address = 0)
 	QPADeActPrevLoadedParameter
-	// 激活/停止激活所寻址信息对象的参数
+	// Activate/deactivate parameters of the addressed information object
 	QPADeActObjectParameter
-	// 激活/停止激活所寻址的持续循环或周期传输的信息对象
+	// Activate/deactivate the addressed information object's cyclic or periodic transmission
 	QPADeActObjectTransmission
 	// 4‥127: reserved for standard definitions of sf companion standard (compatible range)
 	// 128‥255: reserved for special use (private range)
@@ -429,23 +430,19 @@ type QOCQual byte
 // QOCQual defined
 const (
 	// 0: no additional definition
-	// 无另外的定义
 	QOCNoAdditionalDefinition QOCQual = iota
 	// 1: short pulse duration (circuit-breaker), duration determined by a system parameter in the outstation
-	// 短脉冲持续时间(断路器),持续时间由被控站内的系统参数所确定
 	QOCShortPulseDuration
 	// 2: long pulse duration, duration determined by a system parameter in the outstation
-	// 长脉冲持续时间,持续时间由被控站内的系统参数所确定
 	QOCLongPulseDuration
 	// 3: persistent output
-	// 持续输出
 	QOCPersistentOutput
 	//	4‥8: reserved for standard definitions of sf companion standard
 	//	9‥15: reserved for the selection of other predefined functions
 	//	16‥31: reserved for special use (private range)
 )
 
-// QualifierOfCommand is a  qualifier of command. 命令限定词
+// QualifierOfCommand is a qualifier of command.
 // See companion standard 101, subclass 7.2.6.26.
 // See section 5, subclass 6.8.
 // InSelect: true - selects, false - executes.
@@ -471,34 +468,35 @@ func (sf QualifierOfCommand) Value() byte {
 	return v
 }
 
-// QualifierOfResetProcessCmd 复位进程命令限定词
+// QualifierOfResetProcessCmd: qualifier of reset process command
 // See companion standard 101, subclass 7.2.6.27.
 type QualifierOfResetProcessCmd byte
 
 // QualifierOfResetProcessCmd defined
 const (
-	// 未采用
+	// not used
 	QRPUnused QualifierOfResetProcessCmd = iota
-	// 进程的总复位
+	// general reset of process
 	QPRGeneralRest
-	// 复位事件缓冲区等待处理的带时标的信息
+	// reset time-tagged information pending in the event buffer
 	QPRResetPendingInfoWithTimeTag
-	// <3..127>: 为标准保留
-	//<128..255>: 为特定使用保留
+	// <3..127>: reserved for standard definitions
+	// <128..255>: reserved for special use
 )
 
 /*
-TODO: file 文件相关未定义
+TODO: file related qualifiers are not defined yet
 */
 
 // QOSQual is the qualifier of a set-point command qual.
 // See companion standard 101, subclass 7.2.6.39.
+//
 //	0: default
 //	0‥63: reserved for standard definitions of sf companion standard (compatible range)
 //	64‥127: reserved for special use (private range)
 type QOSQual uint
 
-// QualifierOfSetpointCmd is a qualifier of command. 设定命令限定词
+// QualifierOfSetpointCmd is a qualifier of set-point command.
 // See section 5, subclass 6.8.
 // InSelect: true - selects, false - executes.
 type QualifierOfSetpointCmd struct {
@@ -523,6 +521,6 @@ func (sf QualifierOfSetpointCmd) Value() byte {
 	return v
 }
 
-// StatusAndStatusChangeDetection 状态和状态变位检出
+// StatusAndStatusChangeDetection: status and change-of-state detection
 // See companion standard 101, subclass 7.2.6.40.
 type StatusAndStatusChangeDetection uint32

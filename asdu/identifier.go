@@ -288,7 +288,7 @@ func (sf TypeID) String() string {
 	default:
 		s = strconv.FormatInt(int64(sf), 10)
 	}
-	return "TID<" + s + ">"
+	return s
 }
 
 // VariableStruct is variable structure qualifier
@@ -321,9 +321,9 @@ func (sf VariableStruct) Value() byte {
 // String returns the format of variable structure
 func (sf VariableStruct) String() string {
 	if sf.IsSequence {
-		return fmt.Sprintf("VSQ<sq,%d>", sf.Number)
+		return fmt.Sprintf("sq,%d", sf.Number)
 	}
-	return fmt.Sprintf("VSQ<%d>", sf.Number)
+	return fmt.Sprintf("%d", sf.Number)
 }
 
 // CauseOfTransmission is the cause of transmission.
@@ -496,7 +496,7 @@ func (sf CauseOfTransmission) Value() byte {
 
 // String returns the string of Cause, including the corresponding applications ",neg" and ",test"
 func (sf CauseOfTransmission) String() string {
-	s := "COT<" + causeSemantics[sf.Cause]
+	s := causeSemantics[sf.Cause]
 	switch {
 	case sf.IsNegative && sf.IsTest:
 		s += ",neg,test"
@@ -505,7 +505,7 @@ func (sf CauseOfTransmission) String() string {
 	case sf.IsTest:
 		s += ",test"
 	}
-	return s + ">"
+	return s
 }
 
 // CommonAddr is a station address.
