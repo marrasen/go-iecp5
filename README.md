@@ -14,7 +14,7 @@ The current implementation contains code for IEC 60870-5-104 (protocol over TCP/
 [![Tests](https://github.com/thinkgos/go-iecp5/actions/workflows/ci.yml/badge.svg)](https://github.com/thinkgos/go-iecp5/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/thinkgos/go-iecp5/branch/master/graph/badge.svg)](https://codecov.io/gh/thinkgos/go-iecp5)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thinkgos/go-iecp5)](https://goreportcard.com/report/github.com/thinkgos/go-iecp5)
-[![License](https://img.shields.io/github/license/thinkgos/go-iecp5)](https://github.com/thinkgos/go-iecp5/raw/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Tag](https://img.shields.io/github/v/tag/thinkgos/go-iecp5)](https://github.com/thinkgos/go-iecp5/tags)
 [![Sourcegraph](https://sourcegraph.com/github.com/thinkgos/go-iecp5/-/badge.svg)](https://sourcegraph.com/github.com/thinkgos/go-iecp5?badge)
 
@@ -22,6 +22,18 @@ The current implementation contains code for IEC 60870-5-104 (protocol over TCP/
 asdu package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/asdu?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/asdu)  
 clog package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/clog?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/clog)  
 cs104 package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/cs104?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/cs104)  
+
+## License
+
+This fork adopts the MIT License.
+
+- Background: the original upstream repository (thinkgos/go-iecp5) was archived with the notice: "已归档, 不再维护, 放弃License. 有需要的可以自由分发" ("Archived, no longer maintained, license abandoned. If needed, you can freely redistribute.").
+- Change: this fork changes the licensing of the code present here to MIT to simplify reuse and clarify terms.
+- Implementation details:
+  - All source files include SPDX-License-Identifier: MIT headers.
+  - The root LICENSE file contains the full MIT License text.
+
+See the LICENSE file in the repository root for the full text and terms.
 
 ## Feature:
 
