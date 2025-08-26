@@ -1,0 +1,24 @@
+name: Publish module version
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  prime-proxy:
+    name: Prime Go module proxy for tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prime proxy cache for new tag
+        env:
+          MODULE: github.com/marrasen/go-iecp5
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -e
+          echo "Priming Go proxy for $MODULE@$TAG"
+          BASE="https://proxy.golang.org/${MODULE}/@v"
+          for ext in info mod zip; do
+            echo "Requesting ${BASE}/${TAG}.${ext}"
+            curl -sSf "${BASE}/${TAG}.${ext}" || true
+          done
