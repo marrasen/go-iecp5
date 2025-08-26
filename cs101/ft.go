@@ -3,61 +3,61 @@
 
 package cs101
 
-// 采用FT1.2帧格式
+// Use FT1.2 frame format
 const (
-	startVarFrame byte = 0x68 // 长度可变帧启动字符
-	startFixFrame byte = 0x10 // 长度固定帧启动字符
+	startVarFrame byte = 0x68 // start character of variable-length frame
+	startFixFrame byte = 0x10 // start character of fixed-length frame
 	endFrame      byte = 0x16
 )
 
-// 控制域定义
+// Control field definitions
 const (
 
-	// 启动站到从动站特有
-	FCV = 1 << 4 // 帧计数有效位
-	FCB = 1 << 5 // 帧计数位
-	// 从动站到启动站特有
-	DFC     = 1 << 4 // 数据流控制位
-	ACD_RES = 1 << 5 // 要求访问位,非平衡ACD,平衡保留
-	// 启动报文位:
-	// PRM = 0, 由从动站向启动站传输报文;
-	// PRM = 1, 由启动站向从动站传输报文
+	// Master-to-slave specific
+	FCV = 1 << 4 // frame count valid bit
+	FCB = 1 << 5 // frame count bit
+	// Slave-to-master specific
+	DFC     = 1 << 4 // Data Flow Control bit
+	ACD_RES = 1 << 5 // Access Demand bit (unbalanced ACD, balanced reserved)
+	// Primary Message bit:
+	// PRM = 0, message transmitted from controlled station to primary station;
+	// PRM = 1, message transmitted from primary station to controlled station
 	RPM     = 1 << 6
-	RES_DIR = 1 << 7 // 非平衡保留,平衡为方向
+	RES_DIR = 1 << 7 // Unbalanced reserved, balanced for direction
 
-	// 由启动站向从动站传输的报文中控制域的功能码(PRM = 1)
-	FccResetRemoteLink                 = iota // 复位远方链路
-	FccResetUserProcess                       // 复位用户进程
-	FccBalanceTestLink                        // 链路测试功能
-	FccUserDataWithConfirmed                  // 用户数据,需确认
-	FccUserDataWithUnconfirmed                // 用户数据,无需确认
-	_                                         // 保留
-	_                                         // 制造厂和用户协商定义
-	_                                         // 制造厂和用户协商定义
-	FccUnbalanceWithRequestBitResponse        // 以要求访问位响应
-	FccLinkStatus                             // 请求链路状态
-	FccUnbalanceLevel1UserData                // 请求 1 级用户数据
-	FccUnbalanceLevel2UserData                // 请求 2 级用户数据
-	// 12-13: 备用
-	// 14-15: 制造厂和用户协商定义
+	// Control field function codes for messages transmitted from primary station to controlled station (PRM = 1)
+	FccResetRemoteLink                 = iota // Reset remote link
+	FccResetUserProcess                       // Reset user process
+	FccBalanceTestLink                        // Link test function
+	FccUserDataWithConfirmed                  // User data, confirmation required
+	FccUserDataWithUnconfirmed                // User data, no confirmation required
+	_                                         // Reserved
+	_                                         // Defined by manufacturer and user agreement
+	_                                         // Defined by manufacturer and user agreement
+	FccUnbalanceWithRequestBitResponse        // Response with request bit
+	FccLinkStatus                             // Request link status
+	FccUnbalanceLevel1UserData                // Request level 1 user data
+	FccUnbalanceLevel2UserData                // Request level 2 user data
+	// 12-13: Reserved
+	// 14-15: Defined by manufacturer and user agreement
 
-	// 从动站向启动站传输的报文中控制域的功能码(PRM = 0)
-	FcsConfirmed                 = iota // 认可: 肯定认可
-	FcsNConfirmed                       // 否定认可: 未收到报文,链路忙
-	_                                   // 保留
-	_                                   // 保留
-	_                                   // 保留
-	_                                   // 保留
-	_                                   // 制造厂和用户协商定义
-	_                                   // 制造厂和用户协商定义
-	FcsUnbalanceResponse                // 用户数据
-	FcsUnbalanceNegativeResponse        // 否定认哥: 无所召唤数据
-	_                                   // 保留
-	FcsStatus                           // 链路状态或要求访问
-	// 12: 备用
-	// 13: 制造厂和用户协商定义
-	// 14: 链路服务未工作
-	// 15: 链路服务未完成
+	// Control field function codes for messages transmitted from controlled station to primary station (PRM = 0)
+	FcsConfirmed                 = iota // Confirm: Positive acknowledgment
+	FcsNConfirmed                       // Negative acknowledgment: Message not received, link busy
+	_                                   // Reserved
+	_                                   // Reserved
+	_                                   // Reserved
+	_                                   // Reserved
+	_                                   // Defined by manufacturer and user agreement
+	_                                   // Defined by manufacturer and user agreement
+	FcsUnbalanceResponse                // User data
+	FcsUnbalanceNegativeResponse        // Negative acknowledgment: No data requested
+	_                                   // Reserved
+	FcsStatus                           // Link status or access demand
+	// 12: Reserved
+	// 13: Defined by manufacturer and user agreement
+	// 14: Link service not functioning
+	// 15: Link service not completed
 )
 
 // Ft12 ...
