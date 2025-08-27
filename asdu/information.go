@@ -3,6 +3,11 @@
 
 package asdu
 
+import (
+	"strconv"
+	"strings"
+)
+
 // About information object: Application Service Data Unit (ASDU) - Information Object
 
 // InfoObjAddr is the information object address.
@@ -32,6 +37,19 @@ func (sf SinglePoint) Value() byte {
 	return byte(sf & 0x01)
 }
 
+// String returns a human-readable representation of SinglePoint without the SP prefix
+func (sf SinglePoint) String() string {
+	switch sf.Value() {
+	case 0:
+		return "Off"
+	case 1:
+		return "On"
+	default:
+		// Should not happen due to mask, but keep safe
+		return "Unknown"
+	}
+}
+
 // DoublePoint is a measured value of a determination aware switch.
 // See companion standard 101, subclass 7.2.6.2.
 type DoublePoint byte
@@ -49,9 +67,53 @@ func (sf DoublePoint) Value() byte {
 	return byte(sf & 0x03)
 }
 
+// String returns a human-readable representation of DoublePoint without the DP prefix
+func (sf DoublePoint) String() string {
+	switch sf.Value() {
+	case 0:
+		return "IndeterminateOrIntermediate"
+	case 1:
+		return "DeterminedOff"
+	case 2:
+		return "DeterminedOn"
+	case 3:
+		return "Indeterminate"
+	default:
+		return "Unknown"
+	}
+}
+
 // QualityDescriptor Quality descriptor flags attribute measured values.
 // See companion standard 101, subclass 7.2.6.3.
 type QualityDescriptor byte
+
+// String returns a human-readable representation of the quality flags.
+func (q QualityDescriptor) String() string {
+	if q == QDSGood {
+		return "Good"
+	}
+	parts := make([]string, 0, 5)
+	if q&QDSOverflow != 0 {
+		parts = append(parts, "Overflow")
+	}
+	if q&QDSBlocked != 0 {
+		parts = append(parts, "Blocked")
+	}
+	if q&QDSSubstituted != 0 {
+		parts = append(parts, "Substituted")
+	}
+	if q&QDSNotTopical != 0 {
+		parts = append(parts, "NotTopical")
+	}
+	if q&QDSInvalid != 0 {
+		parts = append(parts, "Invalid")
+	}
+	// If none of the named flags matched but q!=0 (e.g., reserved bits), show hex value
+	if len(parts) == 0 {
+		return "QualityDescriptor(" + strconv.FormatUint(uint64(q), 16) + ")"
+	}
+	return strings.Join(parts, ",")
+}
 
 // QualityDescriptor defined.
 const (
