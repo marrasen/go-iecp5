@@ -503,6 +503,23 @@ const (
 	//	16‥31: reserved for special use (private range)
 )
 
+// String returns a human-readable representation of QOCQual
+func (q QOCQual) String() string {
+	switch q {
+	case QOCNoAdditionalDefinition:
+		return "NoAdditionalDefinition"
+	case QOCShortPulseDuration:
+		return "ShortPulseDuration"
+	case QOCLongPulseDuration:
+		return "LongPulseDuration"
+	case QOCPersistentOutput:
+		return "PersistentOutput"
+	default:
+		// show numeric value for reserved/private ranges
+		return "QOCQual(" + strconv.FormatUint(uint64(q), 10) + ")"
+	}
+}
+
 // QualifierOfCommand is a qualifier of command.
 // See companion standard 101, subclass 7.2.6.26.
 // See section 5, subclass 6.8.
@@ -544,6 +561,20 @@ const (
 	// <3..127>: reserved for standard definitions
 	// <128..255>: reserved for special use
 )
+
+// String returns a human-readable representation of QualifierOfResetProcessCmd
+func (q QualifierOfResetProcessCmd) String() string {
+	switch q {
+	case QRPUnused:
+		return "Unused"
+	case QPRGeneralRest:
+		return "GeneralReset"
+	case QPRResetPendingInfoWithTimeTag:
+		return "ResetPendingInfoWithTimeTag"
+	default:
+		return "QualifierOfResetProcessCmd(" + strconv.FormatUint(uint64(q), 10) + ")"
+	}
+}
 
 /*
 TODO: file related qualifiers are not defined yet

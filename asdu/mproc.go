@@ -70,7 +70,7 @@ func single(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
@@ -79,13 +79,13 @@ func single(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 		if v.Value {
 			value = 0x01
 		}
-		u.AppendBytes(value | byte(v.Qds&0xf0))
+		u.appendBytes(value | byte(v.Qds&0xf0))
 		switch typeID {
 		case M_SP_NA_1:
 		case M_SP_TA_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_SP_TB_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -177,18 +177,18 @@ func double(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
 
-		u.AppendBytes(byte(v.Value&0x03) | byte(v.Qds&0xf0))
+		u.appendBytes(byte(v.Value&0x03) | byte(v.Qds&0xf0))
 		switch typeID {
 		case M_DP_NA_1:
 		case M_DP_TA_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_DP_TB_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -280,18 +280,18 @@ func step(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, ca
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
 
-		u.AppendBytes(v.Value.Value(), byte(v.Qds))
+		u.appendBytes(v.Value.Value(), byte(v.Qds))
 		switch typeID {
 		case M_ST_NA_1:
 		case M_ST_TA_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_SP_TB_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -383,18 +383,18 @@ func bitString32(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmiss
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
-		u.AppendBitsString32(v.Value).AppendBytes(byte(v.Qds))
+		u.appendBitsString32(v.Value).appendBytes(byte(v.Qds))
 
 		switch typeID {
 		case M_BO_NA_1:
 		case M_BO_TA_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_BO_TB_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -478,18 +478,18 @@ func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	for _, v := range attrs {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
-		u.AppendNormalize(v.Value)
+		u.appendNormalize(v.Value)
 		switch typeID {
 		case M_ME_NA_1:
-			u.AppendBytes(byte(v.Qds))
+			u.appendBytes(byte(v.Qds))
 		case M_ME_TA_1:
-			u.AppendBytes(byte(v.Qds)).AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(byte(v.Qds)).appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_ME_TD_1:
-			u.AppendBytes(byte(v.Qds)).AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(byte(v.Qds)).appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_ME_ND_1: // without quality
 		default:
 			return ErrTypeIDNotMatch
@@ -597,17 +597,17 @@ func measuredValueScaled(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
-		u.AppendScaled(v.Value).AppendBytes(byte(v.Qds))
+		u.appendScaled(v.Value).appendBytes(byte(v.Qds))
 		switch typeID {
 		case M_ME_NB_1:
 		case M_ME_TB_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_ME_TE_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -695,18 +695,18 @@ func measuredValueFloat(c Connect, typeID TypeID, isSequence bool, coa CauseOfTr
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
 
-		u.AppendFloat32(v.Value).AppendBytes(byte(v.Qds & 0xf1))
+		u.appendFloat32(v.Value).appendBytes(byte(v.Qds & 0xf1))
 		switch typeID {
 		case M_ME_NC_1:
 		case M_ME_TC_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_ME_TF_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -792,17 +792,17 @@ func integratedTotals(c Connect, typeID TypeID, isSequence bool, coa CauseOfTran
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
-		u.AppendBinaryCounterReading(v.Value)
+		u.appendBinaryCounterReading(v.Value)
 		switch typeID {
 		case M_IT_NA_1:
 		case M_IT_TA_1:
-			u.AppendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
 		case M_IT_TB_1:
-			u.AppendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
+			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -893,16 +893,16 @@ func eventOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmissio
 		return err
 	}
 	for _, v := range infos {
-		if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+		if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 			return err
 		}
-		u.AppendBytes(byte(v.Event&0x03) | byte(v.Qdp&0xf8))
-		u.AppendCP16Time2a(v.Msec)
+		u.appendBytes(byte(v.Event&0x03) | byte(v.Qdp&0xf8))
+		u.appendCP16Time2a(v.Msec)
 		switch typeID {
 		case M_EP_TA_1:
-			u.AppendCP24Time2a(v.Time, u.InfoObjTimeZone)
+			u.appendCP24Time2a(v.Time, u.InfoObjTimeZone)
 		case M_EP_TD_1:
-			u.AppendCP56Time2a(v.Time, u.InfoObjTimeZone)
+			u.appendCP56Time2a(v.Time, u.InfoObjTimeZone)
 		default:
 			return ErrTypeIDNotMatch
 		}
@@ -957,16 +957,16 @@ func packedStartEventsOfProtectionEquipment(c Connect, typeID TypeID, coa CauseO
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(info.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(info.Ioa); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(info.Event), byte(info.Qdp)&0xf1)
-	u.AppendCP16Time2a(info.Msec)
+	u.appendBytes(byte(info.Event), byte(info.Qdp)&0xf1)
+	u.appendCP16Time2a(info.Msec)
 	switch typeID {
 	case M_EP_TB_1:
-		u.AppendCP24Time2a(info.Time, u.InfoObjTimeZone)
+		u.appendCP24Time2a(info.Time, u.InfoObjTimeZone)
 	case M_EP_TE_1:
-		u.AppendCP56Time2a(info.Time, u.InfoObjTimeZone)
+		u.appendCP56Time2a(info.Time, u.InfoObjTimeZone)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -1021,16 +1021,16 @@ func packedOutputCircuitInfo(c Connect, typeID TypeID, coa CauseOfTransmission, 
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(info.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(info.Ioa); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(info.Oci), byte(info.Qdp)&0xf1)
-	u.AppendCP16Time2a(info.Msec)
+	u.appendBytes(byte(info.Oci), byte(info.Qdp)&0xf1)
+	u.appendCP16Time2a(info.Msec)
 	switch typeID {
 	case M_EP_TC_1:
-		u.AppendCP24Time2a(info.Time, u.InfoObjTimeZone)
+		u.appendCP24Time2a(info.Time, u.InfoObjTimeZone)
 	case M_EP_TF_1:
-		u.AppendCP56Time2a(info.Time, u.InfoObjTimeZone)
+		u.appendCP56Time2a(info.Time, u.InfoObjTimeZone)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -1100,36 +1100,39 @@ func PackedSinglePointWithSCD(c Connect, isSequence bool, coa CauseOfTransmissio
 	for _, v := range infos {
 		if !isSequence || !once {
 			once = true
-			if err := u.AppendInfoObjAddr(v.Ioa); err != nil {
+			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
 				return err
 			}
 		}
-		u.AppendStatusAndStatusChangeDetection(v.Scd)
-		u.AppendBytes(byte(v.Qds))
+		u.appendStatusAndStatusChangeDetection(v.Scd)
+		u.appendBytes(byte(v.Qds))
 	}
 	return c.Send(u)
 }
 
 // GetSinglePoint [M_SP_NA_1], [M_SP_TA_1] or [M_SP_TB_1] Retrieve a collection of single-point information objects
 func (sf *ASDU) GetSinglePoint() []SinglePointInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]SinglePointInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
-		value := sf.DecodeByte()
+		value := sf.decodeByte()
 
 		var t time.Time
 		switch sf.Type {
 		case M_SP_NA_1:
 		case M_SP_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_SP_TB_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1145,24 +1148,27 @@ func (sf *ASDU) GetSinglePoint() []SinglePointInfo {
 
 // GetDoublePoint [M_DP_NA_1], [M_DP_TA_1] or [M_DP_TB_1] Retrieve a collection of double-point information objects
 func (sf *ASDU) GetDoublePoint() []DoublePointInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]DoublePointInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
-		value := sf.DecodeByte()
+		value := sf.decodeByte()
 
 		var t time.Time
 		switch sf.Type {
 		case M_DP_NA_1:
 		case M_DP_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_DP_TB_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1178,25 +1184,28 @@ func (sf *ASDU) GetDoublePoint() []DoublePointInfo {
 
 // GetStepPosition [M_ST_NA_1], [M_ST_TA_1] or [M_ST_TB_1] Retrieve a collection of step position information objects
 func (sf *ASDU) GetStepPosition() []StepPositionInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]StepPositionInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
-		value := ParseStepPosition(sf.DecodeByte())
-		qds := QualityDescriptor(sf.DecodeByte())
+		value := ParseStepPosition(sf.decodeByte())
+		qds := QualityDescriptor(sf.decodeByte())
 
 		var t time.Time
 		switch sf.Type {
 		case M_ST_NA_1:
 		case M_ST_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_ST_TB_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1212,26 +1221,29 @@ func (sf *ASDU) GetStepPosition() []StepPositionInfo {
 
 // GetBitString32 [M_BO_NA_1], [M_BO_TA_1] or [M_BO_TB_1] Retrieve a collection of bitstring (32-bit) information objects
 func (sf *ASDU) GetBitString32() []BitString32Info {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]BitString32Info, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeBitsString32()
-		qds := QualityDescriptor(sf.DecodeByte())
+		value := sf.decodeBitsString32()
+		qds := QualityDescriptor(sf.decodeByte())
 
 		var t time.Time
 		switch sf.Type {
 		case M_BO_NA_1:
 		case M_BO_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_BO_TB_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1247,29 +1259,32 @@ func (sf *ASDU) GetBitString32() []BitString32Info {
 
 // GetMeasuredValueNormal [M_ME_NA_1], [M_ME_TA_1], [M_ME_TD_1] or [M_ME_ND_1] Retrieve a collection of measured values (normalized) information objects
 func (sf *ASDU) GetMeasuredValueNormal() []MeasuredValueNormalInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]MeasuredValueNormalInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeNormalize()
+		value := sf.decodeNormalize()
 
 		var t time.Time
 		var qds QualityDescriptor
 		switch sf.Type {
 		case M_ME_NA_1:
-			qds = QualityDescriptor(sf.DecodeByte())
+			qds = QualityDescriptor(sf.decodeByte())
 		case M_ME_TA_1:
-			qds = QualityDescriptor(sf.DecodeByte())
-			t = sf.DecodeCP24Time2a()
+			qds = QualityDescriptor(sf.decodeByte())
+			t = sf.decodeCP24Time2a()
 		case M_ME_TD_1:
-			qds = QualityDescriptor(sf.DecodeByte())
-			t = sf.DecodeCP56Time2a()
+			qds = QualityDescriptor(sf.decodeByte())
+			t = sf.decodeCP56Time2a()
 		case M_ME_ND_1: // without quality
 		default:
 			panic(ErrTypeIDNotMatch)
@@ -1286,26 +1301,29 @@ func (sf *ASDU) GetMeasuredValueNormal() []MeasuredValueNormalInfo {
 
 // GetMeasuredValueScaled [M_ME_NB_1], [M_ME_TB_1] or [M_ME_TE_1] Retrieve a collection of measured values (scaled) information objects
 func (sf *ASDU) GetMeasuredValueScaled() []MeasuredValueScaledInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]MeasuredValueScaledInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeScaled()
-		qds := QualityDescriptor(sf.DecodeByte())
+		value := sf.decodeScaled()
+		qds := QualityDescriptor(sf.decodeByte())
 
 		var t time.Time
 		switch sf.Type {
 		case M_ME_NB_1:
 		case M_ME_TB_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_ME_TE_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1321,26 +1339,29 @@ func (sf *ASDU) GetMeasuredValueScaled() []MeasuredValueScaledInfo {
 
 // GetMeasuredValueFloat [M_ME_NC_1], [M_ME_TC_1] or [M_ME_TF_1]. Retrieve a collection of measured values (short floating-point) information objects
 func (sf *ASDU) GetMeasuredValueFloat() []MeasuredValueFloatInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]MeasuredValueFloatInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeFloat32()
-		qua := sf.DecodeByte() & 0xf1
+		value := sf.decodeFloat32()
+		qua := sf.decodeByte() & 0xf1
 
 		var t time.Time
 		switch sf.Type {
 		case M_ME_NC_1:
 		case M_ME_TC_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_ME_TF_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1355,25 +1376,28 @@ func (sf *ASDU) GetMeasuredValueFloat() []MeasuredValueFloatInfo {
 
 // GetIntegratedTotals [M_IT_NA_1], [M_IT_TA_1] or [M_IT_TB_1]. Retrieve a collection of integrated totals information objects
 func (sf *ASDU) GetIntegratedTotals() []BinaryCounterReadingInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]BinaryCounterReadingInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeBinaryCounterReading()
+		value := sf.decodeBinaryCounterReading()
 
 		var t time.Time
 		switch sf.Type {
 		case M_IT_NA_1:
 		case M_IT_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_IT_TB_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1387,24 +1411,27 @@ func (sf *ASDU) GetIntegratedTotals() []BinaryCounterReadingInfo {
 
 // GetEventOfProtectionEquipment [M_EP_TA_1] [M_EP_TD_1] Retrieve event information objects of protection equipment
 func (sf *ASDU) GetEventOfProtectionEquipment() []EventOfProtectionEquipmentInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]EventOfProtectionEquipmentInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
 
-		value := sf.DecodeByte()
-		msec := sf.DecodeCP16Time2a()
+		value := sf.decodeByte()
+		msec := sf.decodeCP16Time2a()
 		var t time.Time
 		switch sf.Type {
 		case M_EP_TA_1:
-			t = sf.DecodeCP24Time2a()
+			t = sf.decodeCP24Time2a()
 		case M_EP_TD_1:
-			t = sf.DecodeCP56Time2a()
+			t = sf.decodeCP56Time2a()
 		default:
 			panic(ErrTypeIDNotMatch)
 		}
@@ -1420,21 +1447,24 @@ func (sf *ASDU) GetEventOfProtectionEquipment() []EventOfProtectionEquipmentInfo
 
 // GetPackedStartEventsOfProtectionEquipment [M_EP_TB_1] [M_EP_TE_1] Retrieve packed start event information objects of protection equipment
 func (sf *ASDU) GetPackedStartEventsOfProtectionEquipment() PackedStartEventsOfProtectionEquipmentInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := PackedStartEventsOfProtectionEquipmentInfo{}
 
 	if sf.Variable.IsSequence || sf.Variable.Number != 1 {
 		return info
 	}
 
-	info.Ioa = sf.DecodeInfoObjAddr()
-	info.Event = StartEvent(sf.DecodeByte())
-	info.Qdp = QualityDescriptorProtection(sf.DecodeByte() & 0xf1)
-	info.Msec = sf.DecodeCP16Time2a()
+	info.Ioa = sf.decodeInfoObjAddr()
+	info.Event = StartEvent(sf.decodeByte())
+	info.Qdp = QualityDescriptorProtection(sf.decodeByte() & 0xf1)
+	info.Msec = sf.decodeCP16Time2a()
 	switch sf.Type {
 	case M_EP_TB_1:
-		info.Time = sf.DecodeCP24Time2a()
+		info.Time = sf.decodeCP24Time2a()
 	case M_EP_TE_1:
-		info.Time = sf.DecodeCP56Time2a()
+		info.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -1443,21 +1473,24 @@ func (sf *ASDU) GetPackedStartEventsOfProtectionEquipment() PackedStartEventsOfP
 
 // GetPackedOutputCircuitInfo [M_EP_TC_1] [M_EP_TF_1] Retrieve packed output circuit information objects of protection equipment
 func (sf *ASDU) GetPackedOutputCircuitInfo() PackedOutputCircuitInfoInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := PackedOutputCircuitInfoInfo{}
 
 	if sf.Variable.IsSequence || sf.Variable.Number != 1 {
 		return info
 	}
 
-	info.Ioa = sf.DecodeInfoObjAddr()
-	info.Oci = OutputCircuitInfo(sf.DecodeByte())
-	info.Qdp = QualityDescriptorProtection(sf.DecodeByte() & 0xf1)
-	info.Msec = sf.DecodeCP16Time2a()
+	info.Ioa = sf.decodeInfoObjAddr()
+	info.Oci = OutputCircuitInfo(sf.decodeByte())
+	info.Qdp = QualityDescriptorProtection(sf.decodeByte() & 0xf1)
+	info.Msec = sf.decodeCP16Time2a()
 	switch sf.Type {
 	case M_EP_TC_1:
-		info.Time = sf.DecodeCP24Time2a()
+		info.Time = sf.decodeCP24Time2a()
 	case M_EP_TF_1:
-		info.Time = sf.DecodeCP56Time2a()
+		info.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -1466,17 +1499,20 @@ func (sf *ASDU) GetPackedOutputCircuitInfo() PackedOutputCircuitInfoInfo {
 
 // GetPackedSinglePointWithSCD [M_PS_NA_1]. Retrieve grouped single-point information with change detection
 func (sf *ASDU) GetPackedSinglePointWithSCD() []PackedSinglePointWithSCDInfo {
+	// non-destructive: allow multiple calls
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	info := make([]PackedSinglePointWithSCDInfo, 0, sf.Variable.Number)
 	infoObjAddr := InfoObjAddr(0)
 	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
 		if !sf.Variable.IsSequence || !once {
 			once = true
-			infoObjAddr = sf.DecodeInfoObjAddr()
+			infoObjAddr = sf.decodeInfoObjAddr()
 		} else {
 			infoObjAddr++
 		}
-		scd := sf.DecodeStatusAndStatusChangeDetection()
-		qds := QualityDescriptor(sf.DecodeByte())
+		scd := sf.decodeStatusAndStatusChangeDetection()
+		qds := QualityDescriptor(sf.decodeByte())
 		info = append(info, PackedSinglePointWithSCDInfo{
 			Ioa: infoObjAddr,
 			Scd: scd,

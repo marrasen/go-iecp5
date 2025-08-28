@@ -36,10 +36,10 @@ func InterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qoi Qua
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(qoi))
+	u.appendBytes(byte(qoi))
 	return c.Send(u)
 }
 
@@ -67,10 +67,10 @@ func CounterInterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendBytes(qcc.Value())
+	u.appendBytes(qcc.Value())
 	return c.Send(u)
 }
 
@@ -96,7 +96,7 @@ func ReadCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa InfoObjAddr)
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(ioa); err != nil {
+	if err := u.appendInfoObjAddr(ioa); err != nil {
 		return err
 	}
 	return c.Send(u)
@@ -126,10 +126,10 @@ func ClockSynchronizationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendBytes(CP56Time2a(t, u.InfoObjTimeZone)...)
+	u.appendBytes(CP56Time2a(t, u.InfoObjTimeZone)...)
 	return c.Send(u)
 }
 
@@ -156,10 +156,10 @@ func TestCommand(c Connect, coa CauseOfTransmission, ca CommonAddr) error {
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(FBPTestWord&0xff), byte(FBPTestWord>>8))
+	u.appendBytes(byte(FBPTestWord&0xff), byte(FBPTestWord>>8))
 	return c.Send(u)
 }
 
@@ -186,10 +186,10 @@ func ResetProcessCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qrp Qual
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(qrp))
+	u.appendBytes(byte(qrp))
 	return c.Send(u)
 }
 
@@ -220,10 +220,10 @@ func DelayAcquireCommand(c Connect, coa CauseOfTransmission, ca CommonAddr, msec
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendCP16Time2a(msec)
+	u.appendCP16Time2a(msec)
 	return c.Send(u)
 }
 
@@ -248,50 +248,66 @@ func TestCommandCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, t 
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
 		return err
 	}
-	u.AppendUint16(FBPTestWord)
-	u.AppendCP56Time2a(t, u.InfoObjTimeZone)
+	u.appendUint16(FBPTestWord)
+	u.appendCP56Time2a(t, u.InfoObjTimeZone)
 	return c.Send(u)
 }
 
 // GetInterrogationCmd [C_IC_NA_1] Get general interrogation information body (information object address, qualifier of interrogation)
 func (sf *ASDU) GetInterrogationCmd() (InfoObjAddr, QualifierOfInterrogation) {
-	return sf.DecodeInfoObjAddr(), QualifierOfInterrogation(sf.infoObj[0])
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), QualifierOfInterrogation(sf.infoObj[0])
 }
 
 // GetCounterInterrogationCmd [C_CI_NA_1] Get counter interrogation information body (information object address, qualifier of counter call)
 func (sf *ASDU) GetCounterInterrogationCmd() (InfoObjAddr, QualifierCountCall) {
-	return sf.DecodeInfoObjAddr(), ParseQualifierCountCall(sf.infoObj[0])
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), ParseQualifierCountCall(sf.infoObj[0])
 }
 
 // GetReadCmd [C_RD_NA_1] Get read command information address
 func (sf *ASDU) GetReadCmd() InfoObjAddr {
-	return sf.DecodeInfoObjAddr()
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr()
 }
 
 // GetClockSynchronizationCmd [C_CS_NA_1] Get clock synchronization command information body (information object address, time)
 func (sf *ASDU) GetClockSynchronizationCmd() (InfoObjAddr, time.Time) {
-	return sf.DecodeInfoObjAddr(), sf.DecodeCP56Time2a()
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), sf.decodeCP56Time2a()
 }
 
 // GetTestCommand [C_TS_NA_1] Get test command information body (information object address, is test word)
 func (sf *ASDU) GetTestCommand() (InfoObjAddr, bool) {
-	return sf.DecodeInfoObjAddr(), sf.DecodeUint16() == FBPTestWord
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), sf.decodeUint16() == FBPTestWord
 }
 
 // GetResetProcessCmd [C_RP_NA_1] Get reset process command information body (information object address, qualifier of reset process command)
 func (sf *ASDU) GetResetProcessCmd() (InfoObjAddr, QualifierOfResetProcessCmd) {
-	return sf.DecodeInfoObjAddr(), QualifierOfResetProcessCmd(sf.infoObj[0])
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), QualifierOfResetProcessCmd(sf.infoObj[0])
 }
 
 // GetDelayAcquireCommand [C_CD_NA_1] Get delay acquire command information body (information object address, delay milliseconds)
 func (sf *ASDU) GetDelayAcquireCommand() (InfoObjAddr, uint16) {
-	return sf.DecodeInfoObjAddr(), sf.DecodeUint16()
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), sf.decodeUint16()
 }
 
 // GetTestCommandCP56Time2a [C_TS_TA_1] Get test command information body (information object address, is test word, time)
 func (sf *ASDU) GetTestCommandCP56Time2a() (InfoObjAddr, bool, time.Time) {
-	return sf.DecodeInfoObjAddr(), sf.DecodeUint16() == FBPTestWord, sf.DecodeCP56Time2a()
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), sf.decodeUint16() == FBPTestWord, sf.decodeCP56Time2a()
 }

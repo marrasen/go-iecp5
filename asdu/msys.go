@@ -24,14 +24,16 @@ func EndOfInitialization(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa 
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(ioa); err != nil {
+	if err := u.appendInfoObjAddr(ioa); err != nil {
 		return err
 	}
-	u.AppendBytes(coi.Value())
+	u.appendBytes(coi.Value())
 	return c.Send(u)
 }
 
-// GetEndOfInitialization get GetEndOfInitialization for asdu when the identification [M_EI_NA_1]
-func (sf *ASDU) GetEndOfInitialization() (InfoObjAddr, CauseOfInitial) {
-	return sf.DecodeInfoObjAddr(), ParseCauseOfInitial(sf.infoObj[0])
+// GetEndOfInitialization [M_EI_NA_1] Retrieve end of initialization (idempotent)
+func (sf *ASDU) GetEndOfInitialization() (InfoObjAddr, CauseOfInitial) { // idempotent
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
+	return sf.decodeInfoObjAddr(), ParseCauseOfInitial(sf.infoObj[0])
 }

@@ -43,11 +43,11 @@ func ParameterNormal(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(p.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
 		return err
 	}
-	u.AppendNormalize(p.Value)
-	u.AppendBytes(p.Qpm.Value())
+	u.appendNormalize(p.Value)
+	u.appendBytes(p.Qpm.Value())
 	return c.Send(u)
 }
 
@@ -89,10 +89,10 @@ func ParameterScaled(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(p.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
 		return err
 	}
-	u.AppendScaled(p.Value).AppendBytes(p.Qpm.Value())
+	u.appendScaled(p.Value).appendBytes(p.Qpm.Value())
 	return c.Send(u)
 }
 
@@ -134,10 +134,10 @@ func ParameterFloat(c Connect, coa CauseOfTransmission, ca CommonAddr, p Paramet
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(p.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
 		return err
 	}
-	u.AppendFloat32(p.Value).AppendBytes(p.Qpm.Value())
+	u.appendFloat32(p.Value).appendBytes(p.Qpm.Value())
 	return c.Send(u)
 }
 
@@ -175,44 +175,52 @@ func ParameterActivation(c Connect, coa CauseOfTransmission, ca CommonAddr, p Pa
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(p.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
 		return err
 	}
-	u.AppendBytes(byte(p.Qpa))
+	u.appendBytes(byte(p.Qpa))
 	return c.Send(u)
 }
 
 // GetParameterNormal [P_ME_NA_1] get measurement parameter, normalized value information object
 func (sf *ASDU) GetParameterNormal() ParameterNormalInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	return ParameterNormalInfo{
-		sf.DecodeInfoObjAddr(),
-		sf.DecodeNormalize(),
+		sf.decodeInfoObjAddr(),
+		sf.decodeNormalize(),
 		ParseQualifierOfParamMV(sf.infoObj[0]),
 	}
 }
 
 // GetParameterScaled [P_ME_NB_1] get measurement parameter, scaled value information object
 func (sf *ASDU) GetParameterScaled() ParameterScaledInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	return ParameterScaledInfo{
-		sf.DecodeInfoObjAddr(),
-		sf.DecodeScaled(),
+		sf.decodeInfoObjAddr(),
+		sf.decodeScaled(),
 		ParseQualifierOfParamMV(sf.infoObj[0]),
 	}
 }
 
 // GetParameterFloat [P_ME_NC_1] get measurement parameter, short floating-point value information object
 func (sf *ASDU) GetParameterFloat() ParameterFloatInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	return ParameterFloatInfo{
-		sf.DecodeInfoObjAddr(),
-		sf.DecodeFloat32(),
+		sf.decodeInfoObjAddr(),
+		sf.decodeFloat32(),
 		ParseQualifierOfParamMV(sf.infoObj[0]),
 	}
 }
 
 // GetParameterActivation [P_AC_NA_1] get parameter activation information object
 func (sf *ASDU) GetParameterActivation() ParameterActivationInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	return ParameterActivationInfo{
-		sf.DecodeInfoObjAddr(),
+		sf.decodeInfoObjAddr(),
 		QualifierOfParameterAct(sf.infoObj[0]),
 	}
 }

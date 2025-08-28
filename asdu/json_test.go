@@ -103,10 +103,10 @@ func newBaseASDU(p *Params, t TypeID, n byte) *ASDU {
 func TestASDU_MarshalJSON_MeasuredValueNormalNoQ(t *testing.T) {
 	a := newBaseASDU(ParamsNarrow, M_ME_ND_1, 1)
 	// payload: IOA + Normalize (no qds, no time)
-	if err := a.AppendInfoObjAddr(10); err != nil {
+	if err := a.appendInfoObjAddr(10); err != nil {
 		t.Fatalf("addr: %v", err)
 	}
-	a.AppendNormalize(Normalize(16384)) // 0.5
+	a.appendNormalize(Normalize(16384)) // 0.5
 
 	b, err := json.Marshal(a)
 	if err != nil {
@@ -156,15 +156,15 @@ func TestASDU_MarshalJSON_MeasuredValueNormalNoQ(t *testing.T) {
 func TestASDU_MarshalJSON_SinglePointWithTime(t *testing.T) {
 	a := newBaseASDU(ParamsNarrow, M_SP_TB_1, 1)
 	// payload: IOA + val|qds + CP56Time2a
-	if err := a.AppendInfoObjAddr(1); err != nil {
+	if err := a.appendInfoObjAddr(1); err != nil {
 		t.Fatalf("addr: %v", err)
 	}
 	// value true with QDSBlocked
-	a.AppendBytes(0x01 | byte(QDSBlocked))
+	a.appendBytes(0x01 | byte(QDSBlocked))
 	// timestamp
 	utc := time.UTC
 	ts := time.Date(2025, 8, 25, 12, 34, 56, 789*1e6, utc)
-	a.AppendCP56Time2a(ts, utc)
+	a.appendCP56Time2a(ts, utc)
 
 	b, err := json.Marshal(a)
 	if err != nil {
@@ -195,12 +195,12 @@ func TestASDU_MarshalJSON_SinglePointWithTime(t *testing.T) {
 
 func TestASDU_MarshalJSON_ControlSingleCommand(t *testing.T) {
 	a := newBaseASDU(ParamsNarrow, C_SC_NA_1, 1)
-	if err := a.AppendInfoObjAddr(5); err != nil {
+	if err := a.appendInfoObjAddr(5); err != nil {
 		t.Fatalf("addr: %v", err)
 	}
 	qoc := QualifierOfCommand{Qual: QOCShortPulseDuration, InSelect: true}
 	val := qoc.Value() | 0x01 // command true
-	a.AppendBytes(val)
+	a.appendBytes(val)
 
 	b, err := json.Marshal(a)
 	if err != nil {
@@ -228,7 +228,7 @@ func TestASDU_MarshalJSON_ControlSingleCommand(t *testing.T) {
 func TestASDU_MarshalJSON_UnknownTypeFallback(t *testing.T) {
 	a := newBaseASDU(ParamsNarrow, TypeID(200), 2)
 	// arbitrary payload bytes (not necessarily valid IOA etc.)
-	a.AppendBytes(0xAA, 0xBB, 0xCC)
+	a.appendBytes(0xAA, 0xBB, 0xCC)
 	b, err := json.Marshal(a)
 	if err != nil {
 		t.Fatalf("marshal asdu: %v", err)

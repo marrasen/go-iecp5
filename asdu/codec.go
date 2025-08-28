@@ -9,34 +9,34 @@ import (
 	"time"
 )
 
-// AppendBytes append some bytes to info object
-func (sf *ASDU) AppendBytes(b ...byte) *ASDU {
+// appendBytes append some bytes to info object
+func (sf *ASDU) appendBytes(b ...byte) *ASDU {
 	sf.infoObj = append(sf.infoObj, b...)
 	return sf
 }
 
-// DecodeByte decode a byte then the pass it
-func (sf *ASDU) DecodeByte() byte {
+// decodeByte decode a byte then the pass it
+func (sf *ASDU) decodeByte() byte {
 	v := sf.infoObj[0]
 	sf.infoObj = sf.infoObj[1:]
 	return v
 }
 
 // AppendUint16 append some uint16 to info object
-func (sf *ASDU) AppendUint16(b uint16) *ASDU {
+func (sf *ASDU) appendUint16(b uint16) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(b&0xff), byte((b>>8)&0xff))
 	return sf
 }
 
 // DecodeUint16 decode a uint16 then the pass it
-func (sf *ASDU) DecodeUint16() uint16 {
+func (sf *ASDU) decodeUint16() uint16 {
 	v := binary.LittleEndian.Uint16(sf.infoObj)
 	sf.infoObj = sf.infoObj[2:]
 	return v
 }
 
 // AppendInfoObjAddr append information object address to information object
-func (sf *ASDU) AppendInfoObjAddr(addr InfoObjAddr) error {
+func (sf *ASDU) appendInfoObjAddr(addr InfoObjAddr) error {
 	switch sf.InfoObjAddrSize {
 	case 1:
 		if addr > 255 {
@@ -60,7 +60,7 @@ func (sf *ASDU) AppendInfoObjAddr(addr InfoObjAddr) error {
 }
 
 // DecodeInfoObjAddr decode info object address then the pass it
-func (sf *ASDU) DecodeInfoObjAddr() InfoObjAddr {
+func (sf *ASDU) decodeInfoObjAddr() InfoObjAddr {
 	var ioa InfoObjAddr
 	switch sf.InfoObjAddrSize {
 	case 1:
@@ -79,13 +79,13 @@ func (sf *ASDU) DecodeInfoObjAddr() InfoObjAddr {
 }
 
 // AppendNormalize append a Normalize value to info object
-func (sf *ASDU) AppendNormalize(n Normalize) *ASDU {
+func (sf *ASDU) appendNormalize(n Normalize) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(n), byte(n>>8))
 	return sf
 }
 
 // DecodeNormalize decode info object byte to a Normalize value
-func (sf *ASDU) DecodeNormalize() Normalize {
+func (sf *ASDU) decodeNormalize() Normalize {
 	n := Normalize(binary.LittleEndian.Uint16(sf.infoObj))
 	sf.infoObj = sf.infoObj[2:]
 	return n
@@ -93,13 +93,13 @@ func (sf *ASDU) DecodeNormalize() Normalize {
 
 // AppendScaled append a Scaled value to info object
 // See companion standard 101, subclass 7.2.6.7.
-func (sf *ASDU) AppendScaled(i int16) *ASDU {
+func (sf *ASDU) appendScaled(i int16) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(i), byte(i>>8))
 	return sf
 }
 
 // DecodeScaled decode info object byte to a Scaled value
-func (sf *ASDU) DecodeScaled() int16 {
+func (sf *ASDU) decodeScaled() int16 {
 	s := int16(binary.LittleEndian.Uint16(sf.infoObj))
 	sf.infoObj = sf.infoObj[2:]
 	return s
@@ -107,14 +107,14 @@ func (sf *ASDU) DecodeScaled() int16 {
 
 // AppendFloat32 append a float32 value to info object
 // See companion standard 101, subclass 7.2.6.8.
-func (sf *ASDU) AppendFloat32(f float32) *ASDU {
+func (sf *ASDU) appendFloat32(f float32) *ASDU {
 	bits := math.Float32bits(f)
 	sf.infoObj = append(sf.infoObj, byte(bits), byte(bits>>8), byte(bits>>16), byte(bits>>24))
 	return sf
 }
 
 // DecodeFloat32 decode info object byte to a float32 value
-func (sf *ASDU) DecodeFloat32() float32 {
+func (sf *ASDU) decodeFloat32() float32 {
 	f := math.Float32frombits(binary.LittleEndian.Uint32(sf.infoObj))
 	sf.infoObj = sf.infoObj[4:]
 	return f
@@ -122,7 +122,7 @@ func (sf *ASDU) DecodeFloat32() float32 {
 
 // AppendBinaryCounterReading append binary couter reading value to info object
 // See companion standard 101, subclass 7.2.6.9.
-func (sf *ASDU) AppendBinaryCounterReading(v BinaryCounterReading) *ASDU {
+func (sf *ASDU) appendBinaryCounterReading(v BinaryCounterReading) *ASDU {
 	value := v.SeqNumber & 0x1f
 	if v.HasCarry {
 		value |= 0x20
@@ -139,7 +139,7 @@ func (sf *ASDU) AppendBinaryCounterReading(v BinaryCounterReading) *ASDU {
 }
 
 // DecodeBinaryCounterReading decode info object byte to binary couter reading value
-func (sf *ASDU) DecodeBinaryCounterReading() BinaryCounterReading {
+func (sf *ASDU) decodeBinaryCounterReading() BinaryCounterReading {
 	v := int32(binary.LittleEndian.Uint32(sf.infoObj))
 	b := sf.infoObj[4]
 	sf.infoObj = sf.infoObj[5:]
@@ -154,65 +154,65 @@ func (sf *ASDU) DecodeBinaryCounterReading() BinaryCounterReading {
 
 // AppendBitsString32 append a bits string value to info object
 // See companion standard 101, subclass 7.2.6.13.
-func (sf *ASDU) AppendBitsString32(v uint32) *ASDU {
+func (sf *ASDU) appendBitsString32(v uint32) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 	return sf
 }
 
 // DecodeBitsString32 decode info object byte to a bits string value
-func (sf *ASDU) DecodeBitsString32() uint32 {
+func (sf *ASDU) decodeBitsString32() uint32 {
 	v := binary.LittleEndian.Uint32(sf.infoObj)
 	sf.infoObj = sf.infoObj[4:]
 	return v
 }
 
 // AppendCP56Time2a append a CP56Time2a value to info object
-func (sf *ASDU) AppendCP56Time2a(t time.Time, loc *time.Location) *ASDU {
+func (sf *ASDU) appendCP56Time2a(t time.Time, loc *time.Location) *ASDU {
 	sf.infoObj = append(sf.infoObj, CP56Time2a(t, loc)...)
 	return sf
 }
 
 // DecodeCP56Time2a decode info object byte to CP56Time2a
-func (sf *ASDU) DecodeCP56Time2a() time.Time {
+func (sf *ASDU) decodeCP56Time2a() time.Time {
 	t := ParseCP56Time2a(sf.infoObj, sf.InfoObjTimeZone)
 	sf.infoObj = sf.infoObj[7:]
 	return t
 }
 
 // AppendCP24Time2a append CP24Time2a to asdu info object
-func (sf *ASDU) AppendCP24Time2a(t time.Time, loc *time.Location) *ASDU {
+func (sf *ASDU) appendCP24Time2a(t time.Time, loc *time.Location) *ASDU {
 	sf.infoObj = append(sf.infoObj, CP24Time2a(t, loc)...)
 	return sf
 }
 
 // DecodeCP24Time2a decode info object byte to CP24Time2a
-func (sf *ASDU) DecodeCP24Time2a() time.Time {
+func (sf *ASDU) decodeCP24Time2a() time.Time {
 	t := ParseCP24Time2a(sf.infoObj, sf.Params.InfoObjTimeZone)
 	sf.infoObj = sf.infoObj[3:]
 	return t
 }
 
 // AppendCP16Time2a append CP16Time2a to asdu info object
-func (sf *ASDU) AppendCP16Time2a(msec uint16) *ASDU {
+func (sf *ASDU) appendCP16Time2a(msec uint16) *ASDU {
 	sf.infoObj = append(sf.infoObj, CP16Time2a(msec)...)
 	return sf
 }
 
 // DecodeCP16Time2a decode info object byte to CP16Time2a
-func (sf *ASDU) DecodeCP16Time2a() uint16 {
+func (sf *ASDU) decodeCP16Time2a() uint16 {
 	t := ParseCP16Time2a(sf.infoObj)
 	sf.infoObj = sf.infoObj[2:]
 	return t
 }
 
 // AppendStatusAndStatusChangeDetection append StatusAndStatusChangeDetection value to asdu info object
-func (sf *ASDU) AppendStatusAndStatusChangeDetection(scd StatusAndStatusChangeDetection) *ASDU {
+func (sf *ASDU) appendStatusAndStatusChangeDetection(scd StatusAndStatusChangeDetection) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(scd), byte(scd>>8), byte(scd>>16), byte(scd>>24))
 	return sf
 }
 
 // DecodeStatusAndStatusChangeDetection decode info object byte to StatusAndStatusChangeDetection
-func (sf *ASDU) DecodeStatusAndStatusChangeDetection() StatusAndStatusChangeDetection {
+func (sf *ASDU) decodeStatusAndStatusChangeDetection() StatusAndStatusChangeDetection {
 	s := StatusAndStatusChangeDetection(binary.LittleEndian.Uint32(sf.infoObj))
 	sf.infoObj = sf.infoObj[4:]
 	return s

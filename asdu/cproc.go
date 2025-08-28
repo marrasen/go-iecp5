@@ -48,18 +48,18 @@ func SingleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
 	value := cmd.Qoc.Value()
 	if cmd.Value {
 		value |= 0x01
 	}
-	u.AppendBytes(value)
+	u.appendBytes(value)
 	switch typeID {
 	case C_SC_NA_1:
 	case C_SC_TA_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -105,15 +105,15 @@ func DoubleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
 
-	u.AppendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
+	u.appendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
 	switch typeID {
 	case C_DC_NA_1:
 	case C_DC_TA_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -158,15 +158,15 @@ func StepCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, c
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
 
-	u.AppendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
+	u.appendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
 	switch typeID {
 	case C_RC_NA_1:
 	case C_RC_TA_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -211,14 +211,14 @@ func SetpointCmdNormal(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
-	u.AppendNormalize(cmd.Value).AppendBytes(cmd.Qos.Value())
+	u.appendNormalize(cmd.Value).appendBytes(cmd.Qos.Value())
 	switch typeID {
 	case C_SE_NA_1:
 	case C_SE_TA_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -263,14 +263,14 @@ func SetpointCmdScaled(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 		ca,
 	})
 
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
-	u.AppendScaled(cmd.Value).AppendBytes(cmd.Qos.Value())
+	u.appendScaled(cmd.Value).appendBytes(cmd.Qos.Value())
 	switch typeID {
 	case C_SE_NB_1:
 	case C_SE_TB_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -314,16 +314,16 @@ func SetpointCmdFloat(c Connect, typeID TypeID, coa CauseOfTransmission, ca Comm
 		0,
 		ca,
 	})
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
 
-	u.AppendFloat32(cmd.Value).AppendBytes(cmd.Qos.Value())
+	u.appendFloat32(cmd.Value).appendBytes(cmd.Qos.Value())
 
 	switch typeID {
 	case C_SE_NC_1:
 	case C_SE_TC_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -368,16 +368,16 @@ func BitsString32Cmd(c Connect, typeID TypeID, coa CauseOfTransmission, commonAd
 		0,
 		commonAddr,
 	})
-	if err := u.AppendInfoObjAddr(cmd.Ioa); err != nil {
+	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
 		return err
 	}
 
-	u.AppendBitsString32(cmd.Value)
+	u.appendBitsString32(cmd.Value)
 
 	switch typeID {
 	case C_BO_NA_1:
 	case C_BO_TA_1:
-		u.AppendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
 	default:
 		return ErrTypeIDNotMatch
 	}
@@ -387,17 +387,19 @@ func BitsString32Cmd(c Connect, typeID TypeID, coa CauseOfTransmission, commonAd
 
 // GetSingleCmd [C_SC_NA_1] or [C_SC_TA_1] get single command information object
 func (sf *ASDU) GetSingleCmd() SingleCommandInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var s SingleCommandInfo
 
-	s.Ioa = sf.DecodeInfoObjAddr()
-	value := sf.DecodeByte()
+	s.Ioa = sf.decodeInfoObjAddr()
+	value := sf.decodeByte()
 	s.Value = value&0x01 == 0x01
 	s.Qoc = ParseQualifierOfCommand(value & 0xfe)
 
 	switch sf.Type {
 	case C_SC_NA_1:
 	case C_SC_TA_1:
-		s.Time = sf.DecodeCP56Time2a()
+		s.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -407,17 +409,19 @@ func (sf *ASDU) GetSingleCmd() SingleCommandInfo {
 
 // GetDoubleCmd [C_DC_NA_1] or [C_DC_TA_1] get double command information object
 func (sf *ASDU) GetDoubleCmd() DoubleCommandInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd DoubleCommandInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	value := sf.DecodeByte()
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	value := sf.decodeByte()
 	cmd.Value = DoubleCommand(value & 0x03)
 	cmd.Qoc = ParseQualifierOfCommand(value & 0xfc)
 
 	switch sf.Type {
 	case C_DC_NA_1:
 	case C_DC_TA_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -427,17 +431,19 @@ func (sf *ASDU) GetDoubleCmd() DoubleCommandInfo {
 
 // GetStepCmd [C_RC_NA_1] or [C_RC_TA_1] get step command information object
 func (sf *ASDU) GetStepCmd() StepCommandInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd StepCommandInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	value := sf.DecodeByte()
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	value := sf.decodeByte()
 	cmd.Value = StepCommand(value & 0x03)
 	cmd.Qoc = ParseQualifierOfCommand(value & 0xfc)
 
 	switch sf.Type {
 	case C_RC_NA_1:
 	case C_RC_TA_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -447,16 +453,18 @@ func (sf *ASDU) GetStepCmd() StepCommandInfo {
 
 // GetSetpointNormalCmd [C_SE_NA_1] or [C_SE_TA_1] get setpoint command, normalized value information object
 func (sf *ASDU) GetSetpointNormalCmd() SetpointCommandNormalInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd SetpointCommandNormalInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	cmd.Value = sf.DecodeNormalize()
-	cmd.Qos = ParseQualifierOfSetpointCmd(sf.DecodeByte())
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	cmd.Value = sf.decodeNormalize()
+	cmd.Qos = ParseQualifierOfSetpointCmd(sf.decodeByte())
 
 	switch sf.Type {
 	case C_SE_NA_1:
 	case C_SE_TA_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -466,16 +474,18 @@ func (sf *ASDU) GetSetpointNormalCmd() SetpointCommandNormalInfo {
 
 // GetSetpointCmdScaled [C_SE_NB_1] or [C_SE_TB_1] get setpoint command, scaled value information object
 func (sf *ASDU) GetSetpointCmdScaled() SetpointCommandScaledInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd SetpointCommandScaledInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	cmd.Value = sf.DecodeScaled()
-	cmd.Qos = ParseQualifierOfSetpointCmd(sf.DecodeByte())
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	cmd.Value = sf.decodeScaled()
+	cmd.Qos = ParseQualifierOfSetpointCmd(sf.decodeByte())
 
 	switch sf.Type {
 	case C_SE_NB_1:
 	case C_SE_TB_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -485,16 +495,18 @@ func (sf *ASDU) GetSetpointCmdScaled() SetpointCommandScaledInfo {
 
 // GetSetpointFloatCmd [C_SE_NC_1] or [C_SE_TC_1] get setpoint command, short floating-point value information object
 func (sf *ASDU) GetSetpointFloatCmd() SetpointCommandFloatInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd SetpointCommandFloatInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	cmd.Value = sf.DecodeFloat32()
-	cmd.Qos = ParseQualifierOfSetpointCmd(sf.DecodeByte())
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	cmd.Value = sf.decodeFloat32()
+	cmd.Qos = ParseQualifierOfSetpointCmd(sf.decodeByte())
 
 	switch sf.Type {
 	case C_SE_NC_1:
 	case C_SE_TC_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
@@ -504,14 +516,16 @@ func (sf *ASDU) GetSetpointFloatCmd() SetpointCommandFloatInfo {
 
 // GetBitsString32Cmd [C_BO_NA_1] or [C_BO_TA_1] get bitstring (32-bit) command information object
 func (sf *ASDU) GetBitsString32Cmd() BitsString32CommandInfo {
+	saved := sf.infoObj
+	defer func() { sf.infoObj = saved }()
 	var cmd BitsString32CommandInfo
 
-	cmd.Ioa = sf.DecodeInfoObjAddr()
-	cmd.Value = sf.DecodeBitsString32()
+	cmd.Ioa = sf.decodeInfoObjAddr()
+	cmd.Value = sf.decodeBitsString32()
 	switch sf.Type {
 	case C_BO_NA_1:
 	case C_BO_TA_1:
-		cmd.Time = sf.DecodeCP56Time2a()
+		cmd.Time = sf.decodeCP56Time2a()
 	default:
 		panic(ErrTypeIDNotMatch)
 	}
