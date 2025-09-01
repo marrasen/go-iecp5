@@ -503,12 +503,6 @@ func (sf *Client) IsActive() bool {
 
 // clientHandler hand response handler
 func (sf *Client) clientHandler(asduPack *asdu.ASDU) error {
-	defer func() {
-		if err := recover(); err != nil {
-			sf.Critical("client handler %+v", err)
-		}
-	}()
-
 	sf.Debug("ASDU %+v", asduPack)
 
 	switch asduPack.Identifier.Type {
