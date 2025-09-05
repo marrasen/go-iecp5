@@ -271,8 +271,8 @@ type SingleCommand byte
 
 // SingleCommand defined
 const (
-	SCOOn SingleCommand = iota
-	SCOOff
+	SCOOff SingleCommand = iota
+	SCOOn
 )
 
 // DoubleCommand double command
