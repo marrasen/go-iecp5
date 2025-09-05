@@ -282,8 +282,8 @@ type DoubleCommand byte
 // DoubleCommand defined
 const (
 	DCONotAllow0 DoubleCommand = iota
-	DCOOn
 	DCOOff
+	DCOOn
 	DCONotAllow3
 )
 
