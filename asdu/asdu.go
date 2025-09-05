@@ -420,37 +420,37 @@ func (sf *ASDU) String() string {
 		_, _ = fmt.Fprintf(&b, " IOA=%d cause=%d localChange=%t", ioa, coi.Cause, coi.IsLocalChange)
 	case C_SC_NA_1, C_SC_TA_1:
 		cmd := sf.GetSingleCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%t QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%t QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
 	case C_DC_NA_1, C_DC_TA_1:
 		cmd := sf.GetDoubleCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
 	case C_RC_NA_1, C_RC_TA_1:
 		cmd := sf.GetStepCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=0x%02x", cmd.Ioa, cmd.Value, cmd.Qoc.Value())
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
 	case C_SE_NA_1, C_SE_TA_1:
 		cmd := sf.GetSetpointNormalCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QOS=0x%02x", cmd.Ioa, cmd.Value.Float64(), byte(cmd.Qos.Value()))
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QOS=%s", cmd.Ioa, cmd.Value.Float64(), cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
 	case C_SE_NB_1, C_SE_TB_1:
 		cmd := sf.GetSetpointCmdScaled()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOS=0x%02x", cmd.Ioa, cmd.Value, byte(cmd.Qos.Value()))
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
 	case C_SE_NC_1, C_SE_TC_1:
 		cmd := sf.GetSetpointFloatCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QOS=0x%02x", cmd.Ioa, cmd.Value, byte(cmd.Qos.Value()))
+		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}

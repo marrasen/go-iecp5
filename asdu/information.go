@@ -546,6 +546,16 @@ func (sf QualifierOfCommand) Value() byte {
 	return v
 }
 
+// String returns a human-readable representation of QualifierOfCommand
+// Format: "Select|Execute:<QOCQual>" where Select is used when InSelect is true and Execute otherwise.
+func (sf QualifierOfCommand) String() string {
+	mode := "Execute"
+	if sf.InSelect {
+		mode = "Select"
+	}
+	return mode + ":" + sf.Qual.String()
+}
+
 // QualifierOfResetProcessCmd: qualifier of reset process command
 // See companion standard 101, subclass 7.2.6.27.
 type QualifierOfResetProcessCmd byte
@@ -611,6 +621,16 @@ func (sf QualifierOfSetpointCmd) Value() byte {
 		v |= 0x80
 	}
 	return v
+}
+
+// String returns a human-readable representation of QualifierOfSetpointCmd
+// Format: "Select|Execute:QOSQual(n)" where Select is used when InSelect is true and Execute otherwise.
+func (sf QualifierOfSetpointCmd) String() string {
+	mode := "Execute"
+	if sf.InSelect {
+		mode = "Select"
+	}
+	return mode + ":" + "QOSQual(" + strconv.FormatUint(uint64(sf.Qual), 10) + ")"
 }
 
 // StatusAndStatusChangeDetection: status and change-of-state detection
