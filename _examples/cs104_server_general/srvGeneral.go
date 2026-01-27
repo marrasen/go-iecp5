@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/marrasen/go-iecp5/asdu"
 	"github.com/marrasen/go-iecp5/cs104"
@@ -28,39 +27,31 @@ func main() {
 
 type mysrv struct{}
 
-func (sf *mysrv) InterrogationHandler(c asdu.Connect, asduPack *asdu.ASDU, qoi asdu.QualifierOfInterrogation) error {
-	log.Println("qoi", qoi)
-	asduPack.SendReplyMirror(c, asdu.ActivationCon)
-	err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.InterrogatedByStation}, asdu.GlobalCommonAddr,
-		asdu.SinglePointInfo{})
-	if err != nil {
-		// log.Println("falied")
-	} else {
-		// log.Println("success")
+func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
+	switch m := msg.(type) {
+	case asdu.InterrogationCmdMsg:
+		log.Println("qoi", m.QOI)
+		if mirror := m.Header().ASDU(); mirror != nil {
+			_ = mirror.SendReplyMirror(c, asdu.ActivationCon)
+		}
+		_ = asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.InterrogatedByStation}, asdu.GlobalCommonAddr,
+			asdu.SinglePointInfo{})
+		// go func() {
+		// 	for {
+		// 		err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.Spontaneous}, asdu.GlobalCommonAddr,
+		// 			asdu.SinglePointInfo{})
+		// 		if err != nil {
+		// 			log.Println("falied", err)
+		// 		} else {
+		// 			log.Println("success", err)
+		// 		}
+		//
+		// 		time.Sleep(time.Second * 1)
+		// 	}
+		// }()
+		if mirror := m.Header().ASDU(); mirror != nil {
+			_ = mirror.SendReplyMirror(c, asdu.ActivationTerm)
+		}
 	}
-	// go func() {
-	// 	for {
-	// 		err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.Spontaneous}, asdu.GlobalCommonAddr,
-	// 			asdu.SinglePointInfo{})
-	// 		if err != nil {
-	// 			log.Println("falied", err)
-	// 		} else {
-	// 			log.Println("success", err)
-	// 		}
-
-	// 		time.Sleep(time.Second * 1)
-	// 	}
-	// }()
-	asduPack.SendReplyMirror(c, asdu.ActivationTerm)
 	return nil
 }
-func (sf *mysrv) CounterInterrogationHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierCountCall) error {
-	return nil
-}
-func (sf *mysrv) ReadHandler(asdu.Connect, *asdu.ASDU, asdu.InfoObjAddr) error { return nil }
-func (sf *mysrv) ClockSyncHandler(asdu.Connect, *asdu.ASDU, time.Time) error   { return nil }
-func (sf *mysrv) ResetProcessHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierOfResetProcessCmd) error {
-	return nil
-}
-func (sf *mysrv) DelayAcquisitionHandler(asdu.Connect, *asdu.ASDU, uint16) error { return nil }
-func (sf *mysrv) ASDUHandler(asdu.Connect, *asdu.ASDU) error                     { return nil }

@@ -23,7 +23,7 @@ const timeoutResolution = 100 * time.Millisecond
 type Server struct {
 	config         Config
 	params         asdu.Params
-	handler        ServerHandlerInterface
+	handler        Handler
 	TLSConfig      *tls.Config
 	mux            sync.Mutex
 	sessions       map[*SrvSession]struct{}
@@ -35,7 +35,7 @@ type Server struct {
 }
 
 // NewServer new a server, default config and default asdu.ParamsWide params
-func NewServer(handler ServerHandlerInterface) *Server {
+func NewServer(handler Handler) *Server {
 	return &Server{
 		config:   DefaultConfig(),
 		params:   *asdu.ParamsWide,

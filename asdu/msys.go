@@ -30,10 +30,3 @@ func EndOfInitialization(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa 
 	u.appendBytes(coi.Value())
 	return c.Send(u)
 }
-
-// GetEndOfInitialization [M_EI_NA_1] Retrieve end of initialization (idempotent)
-func (sf *ASDU) GetEndOfInitialization() (InfoObjAddr, CauseOfInitial) { // idempotent
-	saved := sf.infoObj
-	defer func() { sf.infoObj = saved }()
-	return sf.decodeInfoObjAddr(), ParseCauseOfInitial(sf.infoObj[0])
-}

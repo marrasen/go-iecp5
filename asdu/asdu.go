@@ -193,17 +193,20 @@ func (sf *ASDU) String() string {
 	if len(sf.infoObj) == 0 {
 		return b.String()
 	}
+	msg, err := ParseASDU(sf)
+	if err != nil {
+		n := int(sf.Variable.Number)
+		if n == 0 {
+			n = 1
+		}
+		_, _ = fmt.Fprintf(&b, " items=%d payload=%dB", n, len(sf.infoObj))
+		return b.String()
+	}
 
-	// Work on a non-destructive copy of the infoObj by saving and restoring slice
-	saved := sf.infoObj
-	defer func() { sf.infoObj = saved }()
-
-	switch sf.Type {
-	// Monitored information (common)
-	case M_SP_NA_1, M_SP_TA_1, M_SP_TB_1:
-		infos := sf.GetSinglePoint()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	switch m := msg.(type) {
+	case SinglePointMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -217,13 +220,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
-		infos := sf.GetDoublePoint()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case DoublePointMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -237,13 +239,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1:
-		infos := sf.GetStepPosition()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case StepPositionMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -260,13 +261,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
-		infos := sf.GetBitString32()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case BitString32Msg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -280,13 +280,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
-		infos := sf.GetMeasuredValueNormal()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case MeasuredValueNormalMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -300,13 +299,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
-		infos := sf.GetMeasuredValueScaled()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case MeasuredValueScaledMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -320,13 +318,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
-		infos := sf.GetMeasuredValueFloat()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case MeasuredValueFloatMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -340,13 +337,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
-		infos := sf.GetIntegratedTotals()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case IntegratedTotalsMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -367,13 +363,12 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_EP_TA_1, M_EP_TD_1:
-		infos := sf.GetEventOfProtectionEquipment()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case EventOfProtectionMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -384,25 +379,24 @@ func (sf *ASDU) String() string {
 				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 			}
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-	case M_EP_TB_1, M_EP_TE_1:
-		it := sf.GetPackedStartEventsOfProtectionEquipment()
+	case PackedStartEventsMsg:
+		it := m.Item
 		_, _ = fmt.Fprintf(&b, " IOA=%d start=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Event), byte(it.Qdp), it.Msec)
 		if !it.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 		}
-	case M_EP_TC_1, M_EP_TF_1:
-		it := sf.GetPackedOutputCircuitInfo()
+	case PackedOutputCircuitMsg:
+		it := m.Item
 		_, _ = fmt.Fprintf(&b, " IOA=%d oci=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Oci), byte(it.Qdp), it.Msec)
 		if !it.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
 		}
-	case M_PS_NA_1:
-		infos := sf.GetPackedSinglePointWithSCD()
-		_, _ = fmt.Fprintf(&b, " items=%d", len(infos))
-		for i, it := range infos {
+	case PackedSinglePointWithSCDMsg:
+		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
+		for i, it := range m.Items {
 			if i == 0 {
 				b.WriteString(" [")
 			} else {
@@ -410,78 +404,68 @@ func (sf *ASDU) String() string {
 			}
 			_, _ = fmt.Fprintf(&b, "%d=SCD(0x%08x) QDS=0x%02x", it.Ioa, uint32(it.Scd), byte(it.Qds))
 		}
-		if len(infos) > 0 {
+		if len(m.Items) > 0 {
 			b.WriteByte(']')
 		}
-
-	// System and control directions
-	case M_EI_NA_1:
-		ioa, coi := sf.GetEndOfInitialization()
-		_, _ = fmt.Fprintf(&b, " IOA=%d cause=%d localChange=%t", ioa, coi.Cause, coi.IsLocalChange)
-	case C_SC_NA_1, C_SC_TA_1:
-		cmd := sf.GetSingleCmd()
+	case EndOfInitMsg:
+		_, _ = fmt.Fprintf(&b, " IOA=%d cause=%d localChange=%t", m.IOA, m.COI.Cause, m.COI.IsLocalChange)
+	case SingleCommandMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%t QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_DC_NA_1, C_DC_TA_1:
-		cmd := sf.GetDoubleCmd()
+	case DoubleCommandMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_RC_NA_1, C_RC_TA_1:
-		cmd := sf.GetStepCmd()
+	case StepCommandMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_SE_NA_1, C_SE_TA_1:
-		cmd := sf.GetSetpointNormalCmd()
+	case SetpointNormalMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QOS=%s", cmd.Ioa, cmd.Value.Float64(), cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_SE_NB_1, C_SE_TB_1:
-		cmd := sf.GetSetpointCmdScaled()
+	case SetpointScaledMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_SE_NC_1, C_SE_TC_1:
-		cmd := sf.GetSetpointFloatCmd()
+	case SetpointFloatMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-	case C_BO_NA_1, C_BO_TA_1:
-		cmd := sf.GetBitsString32Cmd()
+	case BitsString32CmdMsg:
+		cmd := m.Cmd
 		_, _ = fmt.Fprintf(&b, " IOA=%d bits=0x%08x", cmd.Ioa, cmd.Value)
 		if !cmd.Time.IsZero() {
 			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
 		}
-
-	// Parameters
-	case P_ME_NA_1:
-		p := sf.GetParameterNormal()
+	case ParameterNormalMsg:
+		p := m.Param
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QPM=0x%02x", p.Ioa, p.Value.Float64(), byte(p.Qpm.Value()))
-	case P_ME_NB_1:
-		p := sf.GetParameterScaled()
+	case ParameterScaledMsg:
+		p := m.Param
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
-	case P_ME_NC_1:
-		p := sf.GetParameterFloat()
+	case ParameterFloatMsg:
+		p := m.Param
 		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
-	case P_AC_NA_1:
-		p := sf.GetParameterActivation()
+	case ParameterActivationMsg:
+		p := m.Param
 		_, _ = fmt.Fprintf(&b, " IOA=%d QPA=%d", p.Ioa, p.Qpa)
-
-	// System command: Interrogation Command
-	case C_IC_NA_1:
-		ioa, qoi := sf.GetInterrogationCmd()
-		_, _ = fmt.Fprintf(&b, " IOA=%d QOI=%d", ioa, byte(qoi))
-
+	case InterrogationCmdMsg:
+		_, _ = fmt.Fprintf(&b, " IOA=%d QOI=%d", m.IOA, byte(m.QOI))
 	default:
-		// Unknown or not yet formatted types: provide concise summary without dumping raw bytes
 		n := int(sf.Variable.Number)
 		if n == 0 {
 			n = 1
@@ -688,156 +672,160 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 		}
 		return t.Format(time.RFC3339Nano)
 	}
-	// Build dynamic value based on Type
 	var value interface{}
-	switch sf.Type {
-	case M_SP_NA_1, M_SP_TA_1, M_SP_TB_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetSinglePoint() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetDoublePoint() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": byte(it.Value), "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetStepPosition() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": map[string]interface{}{"val": it.Value.Val, "transient": it.Value.HasTransient}, "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetBitString32() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetMeasuredValueNormal() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value.Float64()}
-			if sf.Type != M_ME_ND_1 {
-				m["qds"] = byte(it.Qds)
-			}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetMeasuredValueScaled() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetMeasuredValueFloat() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetIntegratedTotals() {
-			v := it.Value
-			m := map[string]interface{}{
-				"ioa": uint(it.Ioa),
-				"value": map[string]interface{}{
-					"count":    v.CounterReading,
-					"seq":      v.SeqNumber,
-					"carry":    v.HasCarry,
-					"adjusted": v.IsAdjusted,
-					"invalid":  v.IsInvalid,
-				},
-			}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_EP_TA_1, M_EP_TD_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetEventOfProtectionEquipment() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec}
-			if !it.Time.IsZero() {
-				m["time"] = ts(it.Time)
-			}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_EP_TB_1, M_EP_TE_1:
-		it := sf.GetPackedStartEventsOfProtectionEquipment()
-		value = map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
-	case M_EP_TC_1, M_EP_TF_1:
-		it := sf.GetPackedOutputCircuitInfo()
-		value = map[string]interface{}{"ioa": uint(it.Ioa), "oci": byte(it.Oci), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
-	case M_PS_NA_1:
-		arr := []map[string]interface{}{}
-		for _, it := range sf.GetPackedSinglePointWithSCD() {
-			m := map[string]interface{}{"ioa": uint(it.Ioa), "scd": uint32(it.Scd), "qds": byte(it.Qds)}
-			arr = append(arr, m)
-		}
-		value = arr
-	case M_EI_NA_1:
-		ioa, coi := sf.GetEndOfInitialization()
-		value = map[string]interface{}{"ioa": uint(ioa), "cause": byte(coi.Cause), "localChange": coi.IsLocalChange}
-	// Control commands single element
-	case C_SC_NA_1, C_SC_TA_1:
-		cmd := sf.GetSingleCmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-	case C_DC_NA_1, C_DC_TA_1:
-		cmd := sf.GetDoubleCmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-	case C_RC_NA_1, C_RC_TA_1:
-		cmd := sf.GetStepCmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-	case C_SE_NA_1, C_SE_TA_1:
-		cmd := sf.GetSetpointNormalCmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value.Float64(), "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-	case C_SE_NB_1, C_SE_TB_1:
-		cmd := sf.GetSetpointCmdScaled()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-	case C_SE_NC_1, C_SE_TC_1:
-		cmd := sf.GetSetpointFloatCmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-	case C_BO_NA_1, C_BO_TA_1:
-		cmd := sf.GetBitsString32Cmd()
-		value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "time": ts(cmd.Time)}
-	case C_IC_NA_1:
-		ioa, qoi := sf.GetInterrogationCmd()
-		value = map[string]interface{}{"ioa": uint(ioa), "qoi": byte(qoi)}
-	default:
-		// For unknown types, return raw payload length as meta
+	msg, err := ParseASDU(sf)
+	if err != nil {
 		value = map[string]interface{}{"items": int(sf.Variable.Number), "payload": len(sf.infoObj)}
+	} else {
+		switch m := msg.(type) {
+		case SinglePointMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case DoublePointMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": byte(it.Value), "qds": byte(it.Qds)}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case StepPositionMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{
+					"ioa":   uint(it.Ioa),
+					"value": map[string]interface{}{"val": it.Value.Val, "transient": it.Value.HasTransient},
+					"qds":   byte(it.Qds),
+				}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case BitString32Msg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case MeasuredValueNormalMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value.Float64()}
+				if m.TypeID() != M_ME_ND_1 {
+					item["qds"] = byte(it.Qds)
+				}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case MeasuredValueScaledMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case MeasuredValueFloatMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case IntegratedTotalsMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				v := it.Value
+				item := map[string]interface{}{
+					"ioa": uint(it.Ioa),
+					"value": map[string]interface{}{
+						"count":    v.CounterReading,
+						"seq":      v.SeqNumber,
+						"carry":    v.HasCarry,
+						"adjusted": v.IsAdjusted,
+						"invalid":  v.IsInvalid,
+					},
+				}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case EventOfProtectionMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec}
+				if !it.Time.IsZero() {
+					item["time"] = ts(it.Time)
+				}
+				arr = append(arr, item)
+			}
+			value = arr
+		case PackedStartEventsMsg:
+			it := m.Item
+			value = map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
+		case PackedOutputCircuitMsg:
+			it := m.Item
+			value = map[string]interface{}{"ioa": uint(it.Ioa), "oci": byte(it.Oci), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
+		case PackedSinglePointWithSCDMsg:
+			arr := []map[string]interface{}{}
+			for _, it := range m.Items {
+				item := map[string]interface{}{"ioa": uint(it.Ioa), "scd": uint32(it.Scd), "qds": byte(it.Qds)}
+				arr = append(arr, item)
+			}
+			value = arr
+		case EndOfInitMsg:
+			value = map[string]interface{}{"ioa": uint(m.IOA), "cause": byte(m.COI.Cause), "localChange": m.COI.IsLocalChange}
+		case SingleCommandMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+		case DoubleCommandMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+		case StepCommandMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
+		case SetpointNormalMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value.Float64(), "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+		case SetpointScaledMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+		case SetpointFloatMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
+		case BitsString32CmdMsg:
+			cmd := m.Cmd
+			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "time": ts(cmd.Time)}
+		case InterrogationCmdMsg:
+			value = map[string]interface{}{"ioa": uint(m.IOA), "qoi": byte(m.QOI)}
+		default:
+			value = map[string]interface{}{"items": int(sf.Variable.Number), "payload": len(sf.infoObj)}
+		}
 	}
 
 	out := map[string]interface{}{

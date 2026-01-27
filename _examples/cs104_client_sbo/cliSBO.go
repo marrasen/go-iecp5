@@ -128,23 +128,12 @@ func main() {
 // same type (e.g., C_SC_NA_1) and causes like Activation confirmation/termination.
 // We parse the ASDU and signal our waiting goroutines.
 
-func (s *sboClient) InterrogationHandler(c asdu.Connect, a *asdu.ASDU) error        { return nil }
-func (s *sboClient) CounterInterrogationHandler(c asdu.Connect, a *asdu.ASDU) error { return nil }
-func (s *sboClient) ReadHandler(c asdu.Connect, a *asdu.ASDU) error                 { return nil }
-func (s *sboClient) TestCommandHandler(c asdu.Connect, a *asdu.ASDU) error          { return nil }
-func (s *sboClient) ClockSyncHandler(c asdu.Connect, a *asdu.ASDU) error            { return nil }
-func (s *sboClient) ResetProcessHandler(c asdu.Connect, a *asdu.ASDU) error         { return nil }
-
-func (s *sboClient) DelayAcquisitionHandler(c asdu.Connect, a *asdu.ASDU) error { return nil }
-
-func (s *sboClient) ASDUHandler(c asdu.Connect, a *asdu.ASDU) error {
-	// We only care about command confirmations here.
-	switch a.Identifier.Type {
-	case asdu.C_SC_NA_1, asdu.C_SC_TA_1:
-		cmd := a.GetSingleCmd()
-		cause := a.Identifier.Coa.Cause
+func (s *sboClient) Handle(c asdu.Connect, msg asdu.Message) error {
+	switch m := msg.(type) {
+	case asdu.SingleCommandMsg:
+		cause := m.Header().Identifier.Coa.Cause
+		cmd := m.Cmd
 		if cmd.Qoc.InSelect && cause == asdu.ActivationCon {
-			// SELECT confirmed
 			select {
 			case s.selectAckCh <- struct{}{}:
 			default:
@@ -152,7 +141,6 @@ func (s *sboClient) ASDUHandler(c asdu.Connect, a *asdu.ASDU) error {
 			fmt.Printf("SELECT confirmation received: IOA=%d Value=%v\n", cmd.Ioa, cmd.Value)
 		}
 		if !cmd.Qoc.InSelect && cause == asdu.ActivationCon {
-			// EXECUTE confirmed
 			select {
 			case s.executeAckCh <- struct{}{}:
 			default:

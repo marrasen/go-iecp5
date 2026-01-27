@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	_ "net/http/pprof"
 
@@ -40,26 +39,12 @@ func main() {
 
 type mysrv struct{}
 
-func (sf *mysrv) InterrogationHandler(c asdu.Connect, asduPack *asdu.ASDU, qoi asdu.QualifierOfInterrogation) error {
-	log.Println("qoi", qoi)
-	// asduPack.SendReplyMirror(c, asdu.ActivationCon)
-	// err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.Inrogen}, asdu.GlobalCommonAddr,
-	// 	asdu.SinglePointInfo{})
-	// if err != nil {
-	// 	// log.Println("falied")
-	// } else {
-	// 	// log.Println("success")
-	// }
-	// asduPack.SendReplyMirror(c, asdu.ActivationTerm)
+func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
+	switch m := msg.(type) {
+	case asdu.InterrogationCmdMsg:
+		log.Println("qoi", m.QOI)
+		// mirror := m.Header().ASDU()
+		// _ = mirror.SendReplyMirror(c, asdu.ActivationCon)
+	}
 	return nil
 }
-func (sf *mysrv) CounterInterrogationHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierCountCall) error {
-	return nil
-}
-func (sf *mysrv) ReadHandler(asdu.Connect, *asdu.ASDU, asdu.InfoObjAddr) error { return nil }
-func (sf *mysrv) ClockSyncHandler(asdu.Connect, *asdu.ASDU, time.Time) error   { return nil }
-func (sf *mysrv) ResetProcessHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierOfResetProcessCmd) error {
-	return nil
-}
-func (sf *mysrv) DelayAcquisitionHandler(asdu.Connect, *asdu.ASDU, uint16) error { return nil }
-func (sf *mysrv) ASDUHandler(asdu.Connect, *asdu.ASDU) error                     { return nil }

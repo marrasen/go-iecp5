@@ -44,167 +44,219 @@ func buildRaw(params *Params, id Identifier, payload []byte) []byte {
 	return cloneBytes(b)
 }
 
-func TestGetSinglePoint_Idempotent(t *testing.T) {
-	// one element, no time, IOA size 3
+func TestParseASDU_IdempotentSinglePoint(t *testing.T) {
 	id := Identifier{Type: M_SP_NA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Spontaneous}, CommonAddr: 1}
 	ioa := InfoObjAddr(0x010203)
-	payload := []byte{byte(ioa), byte(ioa >> 8), byte(ioa >> 16), 0x01 /*on + qds=0*/}
+	payload := []byte{byte(ioa), byte(ioa >> 8), byte(ioa >> 16), 0x01}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 
 	before := marshal(t, a)
-	v1 := a.GetSinglePoint()
-	v2 := a.GetSinglePoint()
-	if !reflect.DeepEqual(v1, v2) {
-		t.Fatalf("values differ on second call: %#v vs %#v", v1, v2)
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(SinglePointMsg)
+	m2 := msg2.(SinglePointMsg)
+	if !reflect.DeepEqual(m1, m2) {
+		t.Fatalf("values differ on second call: %#v vs %#v", m1, m2)
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetSinglePoint; before %x after %x", before, after)
+		t.Fatalf("ASDU mutated by ParseASDU; before %x after %x", before, after)
 	}
 }
 
-func TestGetMeasuredValueScaled_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentMeasuredValueScaled(t *testing.T) {
 	id := Identifier{Type: M_ME_NB_1, Variable: VariableStruct{IsSequence: false, Number: 2}, Coa: CauseOfTransmission{Cause: Periodic}, CommonAddr: 2}
-	// two objects, ioa=5 and 6, scaled values 100,-1, QDS good
 	payload := []byte{5, 0, 0, 100, 0, 0, 6, 0, 0, 255, 255, 0}
 	raw := buildRaw(ParamsNarrow, id, payload)
-	a := NewEmptyASDU(ParamsNarrow)
-	if err := a.UnmarshalBinary(raw); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
+	a := mustUnmarshalWithParams(t, ParamsNarrow, raw)
 	before := marshal(t, a)
-	v1 := a.GetMeasuredValueScaled()
-	v2 := a.GetMeasuredValueScaled()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(MeasuredValueScaledMsg)
+	m2 := msg2.(MeasuredValueScaledMsg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetMeasuredValueScaled")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestGetBitString32_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentBitString32(t *testing.T) {
 	id := Identifier{Type: M_BO_NA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Background}, CommonAddr: 3}
 	ioa := InfoObjAddr(7)
 	payload := []byte{byte(ioa), 0, 0, 0x78, 0x56, 0x34, 0x12, 0x10}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 	before := marshal(t, a)
-	v1 := a.GetBitString32()
-	v2 := a.GetBitString32()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(BitString32Msg)
+	m2 := msg2.(BitString32Msg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
-	if v1[0].Value != 0x12345678 {
-		t.Fatalf("unexpected value: %x", v1[0].Value)
+	if m1.Items[0].Value != 0x12345678 {
+		t.Fatalf("unexpected value: %x", m1.Items[0].Value)
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetBitString32")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestGetIntegratedTotals_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentIntegratedTotals(t *testing.T) {
 	id := Identifier{Type: M_IT_NA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Spontaneous}, CommonAddr: 9}
 	ioa := InfoObjAddr(1)
-	// BinaryCounterReading: 4 bytes counter + status byte
 	payload := []byte{byte(ioa), 0, 0, 0x11, 0x22, 0x33, 0x44, 0x5f}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 	before := marshal(t, a)
-	v1 := a.GetIntegratedTotals()
-	v2 := a.GetIntegratedTotals()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(IntegratedTotalsMsg)
+	m2 := msg2.(IntegratedTotalsMsg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetIntegratedTotals")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestGetEventOfProtectionEquipment_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentEventOfProtection(t *testing.T) {
 	id := Identifier{Type: M_EP_TA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Spontaneous}, CommonAddr: 1}
 	ioa := InfoObjAddr(10)
-	// value byte, CP16 (2 bytes), CP24 (3 bytes)
 	payload := []byte{byte(ioa), 0, 0, 0x03, 0x34, 0x12, 0x01, 0x02, 0x03}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 	before := marshal(t, a)
-	v1 := a.GetEventOfProtectionEquipment()
-	v2 := a.GetEventOfProtectionEquipment()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(EventOfProtectionMsg)
+	m2 := msg2.(EventOfProtectionMsg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetEventOfProtectionEquipment")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestGetPackedStartEvents_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentPackedStartEvents(t *testing.T) {
 	id := Identifier{Type: M_EP_TB_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Spontaneous}, CommonAddr: 1}
 	ioa := InfoObjAddr(3)
-	payload := []byte{byte(ioa), 0, 0, 0xAA, 0x11 /*QDP*/, 0x00, 0x78, 0x56 /*CP16*/, 0x01, 0x02, 0x03 /*CP24*/}
+	payload := []byte{byte(ioa), 0, 0, 0xAA, 0x11, 0x00, 0x78, 0x56, 0x01, 0x02, 0x03}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 	before := marshal(t, a)
-	v1 := a.GetPackedStartEventsOfProtectionEquipment()
-	v2 := a.GetPackedStartEventsOfProtectionEquipment()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(PackedStartEventsMsg)
+	m2 := msg2.(PackedStartEventsMsg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetPackedStartEventsOfProtectionEquipment")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestGetPackedOutputCircuitInfo_Idempotent(t *testing.T) {
+func TestParseASDU_IdempotentPackedOutputCircuit(t *testing.T) {
 	id := Identifier{Type: M_EP_TC_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Spontaneous}, CommonAddr: 1}
 	ioa := InfoObjAddr(4)
-	payload := []byte{byte(ioa), 0, 0, 0x0F, 0x01 /*QDP*/, 0x00, 0x34, 0x12 /*CP16*/, 0x01, 0x02, 0x03 /*CP24*/}
+	payload := []byte{byte(ioa), 0, 0, 0x0F, 0x01, 0x00, 0x34, 0x12, 0x01, 0x02, 0x03}
 	raw := buildRaw(ParamsWide, id, payload)
 	a := mustUnmarshal(t, raw)
 	before := marshal(t, a)
-	v1 := a.GetPackedOutputCircuitInfo()
-	v2 := a.GetPackedOutputCircuitInfo()
-	if !reflect.DeepEqual(v1, v2) {
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(PackedOutputCircuitMsg)
+	m2 := msg2.(PackedOutputCircuitMsg)
+	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetPackedOutputCircuitInfo")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }
 
-func TestSystemGetters_Idempotent(t *testing.T) {
-	// C_IC_NA_1 interrogation
+func TestParseASDU_IdempotentSystem(t *testing.T) {
 	id := Identifier{Type: C_IC_NA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Activation}, CommonAddr: 1}
-	ioa := InfoObjAddrIrrelevant
-	payload := []byte{byte(ioa), byte(QOIStation)}
+	payload := []byte{0x00, byte(QOIStation)}
 	raw := buildRaw(ParamsNarrow, id, payload)
 	a := mustUnmarshalWithParams(t, ParamsNarrow, raw)
 	before := marshal(t, a)
-	_, _ = a.GetInterrogationCmd()
-	_, _ = a.GetInterrogationCmd()
+
+	msg1, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	msg2, err := ParseASDU(a)
+	if err != nil {
+		t.Fatalf("ParseASDU failed: %v", err)
+	}
+	m1 := msg1.(InterrogationCmdMsg)
+	m2 := msg2.(InterrogationCmdMsg)
+	if !reflect.DeepEqual(m1, m2) {
+		t.Fatalf("values differ on second call")
+	}
 	after := marshal(t, a)
 	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetInterrogationCmd")
-	}
-
-	// C_TS_TA_1 test with CP56
-	id = Identifier{Type: C_TS_TA_1, Variable: VariableStruct{IsSequence: false, Number: 1}, Coa: CauseOfTransmission{Cause: Activation}, CommonAddr: 1}
-	payload = []byte{0 /*IOA*/, 0xAA, 0x55 /*test word*/, 0, 0, 0, 0, 0, 0, 0}
-	raw = buildRaw(ParamsNarrow, id, payload)
-	a = mustUnmarshalWithParams(t, ParamsNarrow, raw)
-	before = marshal(t, a)
-	_, _, _ = a.GetTestCommandCP56Time2a()
-	_, _, _ = a.GetTestCommandCP56Time2a()
-	after = marshal(t, a)
-	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("ASDU mutated by GetTestCommandCP56Time2a")
+		t.Fatalf("ASDU mutated by ParseASDU")
 	}
 }

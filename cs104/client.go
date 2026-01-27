@@ -26,7 +26,7 @@ const (
 type Client struct {
 	option  ClientOption
 	conn    net.Conn
-	handler ClientHandlerInterface
+	handler Handler
 
 	// channel
 	rcvASDU  chan []byte // for received asdu
@@ -66,7 +66,7 @@ type Client struct {
 }
 
 // NewClient returns an IEC104 master,default config and default asdu.ParamsWide params
-func NewClient(handler ClientHandlerInterface, o *ClientOption) *Client {
+func NewClient(handler Handler, o *ClientOption) *Client {
 	return &Client{
 		option:           *o,
 		handler:          handler,
@@ -504,31 +504,11 @@ func (sf *Client) IsActive() bool {
 // clientHandler hand response handler
 func (sf *Client) clientHandler(asduPack *asdu.ASDU) error {
 	sf.Debug("ASDU %+v", asduPack)
-
-	switch asduPack.Identifier.Type {
-	case asdu.C_IC_NA_1: // InterrogationCmd
-		return sf.handler.InterrogationHandler(sf, asduPack)
-
-	case asdu.C_CI_NA_1: // CounterInterrogationCmd
-		return sf.handler.CounterInterrogationHandler(sf, asduPack)
-
-	case asdu.C_RD_NA_1: // ReadCmd
-		return sf.handler.ReadHandler(sf, asduPack)
-
-	case asdu.C_CS_NA_1: // ClockSynchronizationCmd
-		return sf.handler.ClockSyncHandler(sf, asduPack)
-
-	case asdu.C_TS_NA_1: // TestCommand
-		return sf.handler.TestCommandHandler(sf, asduPack)
-
-	case asdu.C_RP_NA_1: // ResetProcessCmd
-		return sf.handler.ResetProcessHandler(sf, asduPack)
-
-	case asdu.C_CD_NA_1: // DelayAcquireCommand
-		return sf.handler.DelayAcquisitionHandler(sf, asduPack)
+	msg, err := asdu.ParseASDU(asduPack)
+	if err != nil {
+		return err
 	}
-
-	return sf.handler.ASDUHandler(sf, asduPack)
+	return sf.handler.Handle(sf, msg)
 }
 
 // Params returns params of client

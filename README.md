@@ -40,6 +40,31 @@ See the LICENSE file in the repository root for the full text and terms.
 - client/server for CS 104 TCP/IP communication
 - support for much application layer (except file object) message types,
 
+## Handler API (cs104)
+
+All inbound ASDUs are parsed once and delivered to a single handler. Use type assertions
+to access the specific message payloads.
+
+```go
+type Handler interface {
+	Handle(asdu.Connect, asdu.Message) error
+}
+
+type myHandler struct{}
+
+func (myHandler) Handle(c asdu.Connect, msg asdu.Message) error {
+	switch m := msg.(type) {
+	case asdu.InterrogationCmdMsg:
+		if mirror := m.Header().ASDU(); mirror != nil {
+			_ = mirror.SendReplyMirror(c, asdu.ActivationCon)
+		}
+	default:
+		// handle other message types
+	}
+	return nil
+}
+```
+
 # Reference
 lib60870 C library [lib60870](https://github.com/mz-automation/lib60870)  
 lib60870 C library docs [lib60870 doc](https://support.mz-automation.de/doc/lib60870/latest/group__CS104__MASTER.html)

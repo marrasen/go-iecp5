@@ -56,42 +56,24 @@ func main() {
 
 }
 
-func (myClient) InterrogationHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("InterrogationHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) CounterInterrogationHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("CounterInterrogationHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) ReadHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("ReadHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) TestCommandHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("TestCommandHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) ClockSyncHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("ClockSyncHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) ResetProcessHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("ResetProcessHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) DelayAcquisitionHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("DelayAcquisitionHandler: %v\n", a)
-	return nil
-}
-
-func (myClient) ASDUHandler(c asdu.Connect, a *asdu.ASDU) error {
-	fmt.Printf("ASDUHandler: %v\n", a)
+func (myClient) Handle(c asdu.Connect, msg asdu.Message) error {
+	switch m := msg.(type) {
+	case asdu.InterrogationCmdMsg:
+		fmt.Printf("InterrogationCmd: %+v\n", m)
+	case asdu.CounterInterrogationCmdMsg:
+		fmt.Printf("CounterInterrogationCmd: %+v\n", m)
+	case asdu.ReadCmdMsg:
+		fmt.Printf("ReadCmd: %+v\n", m)
+	case asdu.TestCmdMsg:
+		fmt.Printf("TestCmd: %+v\n", m)
+	case asdu.ClockSyncCmdMsg:
+		fmt.Printf("ClockSyncCmd: %+v\n", m)
+	case asdu.ResetProcessCmdMsg:
+		fmt.Printf("ResetProcessCmd: %+v\n", m)
+	case asdu.DelayAcquireCmdMsg:
+		fmt.Printf("DelayAcquireCmd: %+v\n", m)
+	default:
+		fmt.Printf("ASDU: %+v\n", msg)
+	}
 	return nil
 }

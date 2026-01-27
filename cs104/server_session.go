@@ -28,7 +28,7 @@ type SrvSession struct {
 	config  *Config
 	params  *asdu.Params
 	conn    net.Conn
-	handler ServerHandlerInterface
+	handler Handler
 
 	rcvASDU  chan []byte // for received asdu
 	sendASDU chan []byte // for send asdu
@@ -420,98 +420,104 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 
 	sf.Debug("ASDU %+v", asduPack)
 
-	switch asduPack.Identifier.Type {
-	case asdu.C_IC_NA_1: // InterrogationCmd
-		if !(asduPack.Identifier.Coa.Cause == asdu.Activation ||
-			asduPack.Identifier.Coa.Cause == asdu.Deactivation) {
+	msg, err := asdu.ParseASDU(asduPack)
+	if err != nil {
+		return err
+	}
+
+	switch m := msg.(type) {
+	case asdu.InterrogationCmdMsg:
+		h := m.Header()
+		if !(h.Identifier.Coa.Cause == asdu.Activation ||
+			h.Identifier.Coa.Cause == asdu.Deactivation) {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		ioa, qoi := asduPack.GetInterrogationCmd()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.InterrogationHandler(sf, asduPack, qoi)
+		return sf.handler.Handle(sf, m)
 
-	case asdu.C_CI_NA_1: // CounterInterrogationCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+	case asdu.CounterInterrogationCmdMsg:
+		h := m.Header()
+		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		ioa, qcc := asduPack.GetCounterInterrogationCmd()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.CounterInterrogationHandler(sf, asduPack, qcc)
+		return sf.handler.Handle(sf, m)
 
-	case asdu.C_RD_NA_1: // ReadCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Request {
+	case asdu.ReadCmdMsg:
+		h := m.Header()
+		if h.Identifier.Coa.Cause != asdu.Request {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		return sf.handler.ReadHandler(sf, asduPack, asduPack.GetReadCmd())
+		return sf.handler.Handle(sf, m)
 
-	case asdu.C_CS_NA_1: // ClockSynchronizationCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+	case asdu.ClockSyncCmdMsg:
+		h := m.Header()
+		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-
-		ioa, tm := asduPack.GetClockSynchronizationCmd()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.ClockSyncHandler(sf, asduPack, tm)
+		return sf.handler.Handle(sf, m)
 
-	case asdu.C_TS_NA_1: // TestCommand
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+	case asdu.TestCmdMsg:
+		h := m.Header()
+		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		ioa, _ := asduPack.GetTestCommand()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
 		return asduPack.SendReplyMirror(sf, asdu.ActivationCon)
 
-	case asdu.C_RP_NA_1: // ResetProcessCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+	case asdu.ResetProcessCmdMsg:
+		h := m.Header()
+		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		ioa, qrp := asduPack.GetResetProcessCmd()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.ResetProcessHandler(sf, asduPack, qrp)
-	case asdu.C_CD_NA_1: // DelayAcquireCommand
-		if !(asduPack.Identifier.Coa.Cause == asdu.Activation ||
-			asduPack.Identifier.Coa.Cause == asdu.Spontaneous) {
+		return sf.handler.Handle(sf, m)
+
+	case asdu.DelayAcquireCmdMsg:
+		h := m.Header()
+		if !(h.Identifier.Coa.Cause == asdu.Activation ||
+			h.Identifier.Coa.Cause == asdu.Spontaneous) {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
-		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
+		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		ioa, msec := asduPack.GetDelayAcquireCommand()
-		if ioa != asdu.InfoObjAddrIrrelevant {
+		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.DelayAcquisitionHandler(sf, asduPack, msec)
+		return sf.handler.Handle(sf, m)
 	}
 
-	if err := sf.handler.ASDUHandler(sf, asduPack); err != nil {
+	if err := sf.handler.Handle(sf, msg); err != nil {
 		return asduPack.SendReplyMirror(sf, asdu.UnknownTypeID)
 	}
 	return nil
