@@ -59,58 +59,25 @@ type Client struct {
 	cancel      context.CancelFunc
 	closeCancel context.CancelFunc
 
-	onConnect        func(c *Client)
-	onConnectionLost func(c *Client)
-	onActivated      func(c *Client)
-	onDeactivated    func(c *Client)
+	ConnState func(asdu.Connect, ConnState)
 }
 
 // NewClient returns an IEC104 master,default config and default asdu.ParamsWide params
 func NewClient(handler Handler, o *ClientOption) *Client {
 	return &Client{
-		option:           *o,
-		handler:          handler,
-		rcvASDU:          make(chan []byte, o.config.RecvUnAckLimitW<<4),
-		sendASDU:         make(chan []byte, o.config.SendUnAckLimitK<<4),
-		rcvRaw:           make(chan []byte, o.config.RecvUnAckLimitW<<5),
-		sendRaw:          make(chan []byte, o.config.SendUnAckLimitK<<5), // may not block!
-		Clog:             clog.NewLogger("cs104 client => "),
-		onConnect:        func(*Client) {},
-		onConnectionLost: func(*Client) {},
-		onActivated:      func(*Client) {},
-		onDeactivated:    func(*Client) {},
+		option:   *o,
+		handler:  handler,
+		rcvASDU:  make(chan []byte, o.config.RecvUnAckLimitW<<4),
+		sendASDU: make(chan []byte, o.config.SendUnAckLimitK<<4),
+		rcvRaw:   make(chan []byte, o.config.RecvUnAckLimitW<<5),
+		sendRaw:  make(chan []byte, o.config.SendUnAckLimitK<<5), // may not block!
+		Clog:     clog.NewLogger("cs104 client => "),
 	}
 }
 
-// SetOnConnectHandler set on connect handler
-func (sf *Client) SetOnConnectHandler(f func(c *Client)) *Client {
-	if f != nil {
-		sf.onConnect = f
-	}
-	return sf
-}
-
-// SetConnectionLostHandler set connection lost handler
-func (sf *Client) SetConnectionLostHandler(f func(c *Client)) *Client {
-	if f != nil {
-		sf.onConnectionLost = f
-	}
-	return sf
-}
-
-// SetOnActivatedHandler sets a handler invoked when StartDT is confirmed by the server
-func (sf *Client) SetOnActivatedHandler(f func(c *Client)) *Client {
-	if f != nil {
-		sf.onActivated = f
-	}
-	return sf
-}
-
-// SetOnDeactivatedHandler sets a handler invoked when StopDT is confirmed by the server
-func (sf *Client) SetOnDeactivatedHandler(f func(c *Client)) *Client {
-	if f != nil {
-		sf.onDeactivated = f
-	}
+// SetConnStateHandler sets the connection lifecycle handler.
+func (sf *Client) SetConnStateHandler(f func(asdu.Connect, ConnState)) *Client {
+	sf.ConnState = f
 	return sf
 }
 
@@ -163,12 +130,13 @@ func (sf *Client) recvLoop() {
 			byteCount, err := io.ReadFull(sf.conn, rawData[rdCnt:length])
 			if err != nil {
 				// See: https://github.com/golang/go/issues/4373
-				if err != io.EOF && err != io.ErrClosedPipe ||
+				if err != io.EOF && !errors.Is(err, io.ErrClosedPipe) ||
 					strings.Contains(err.Error(), "use of closed network connection") {
 					sf.Error("receive failed, %v", err)
 					return
 				}
-				if e, ok := err.(net.Error); ok && !e.Temporary() {
+				var e net.Error
+				if errors.As(err, &e) && !e.Temporary() {
 					sf.Error("receive failed, %v", err)
 					return
 				}
@@ -292,11 +260,15 @@ func (sf *Client) run(ctx context.Context) error {
 		checkTicker.Stop()
 		_ = sf.conn.Close() // Trigger cancel indirectly; closing the connection causes loops to abort
 		sf.wg.Wait()
-		sf.onConnectionLost(sf)
+		if sf.ConnState != nil {
+			sf.ConnState(sf, ConnStateClosed)
+		}
 		sf.Debug("run stopped!")
 	}()
 
-	sf.onConnect(sf)
+	if sf.ConnState != nil {
+		sf.ConnState(sf, ConnStateNew)
+	}
 	for {
 		if atomic.LoadUint32(&sf.isActive) == active && seqNoCount(sf.ackNoSend, sf.seqNoSend) <= sf.option.config.SendUnAckLimitK {
 			select {
@@ -386,16 +358,18 @@ func (sf *Client) run(ctx context.Context) error {
 				case uStartDtConfirm:
 					atomic.StoreUint32(&sf.isActive, active)
 					sf.startDtActiveSendSince.Store(willNotTimeout)
-					// notify activation
-					sf.onActivated(sf)
+					if sf.ConnState != nil {
+						sf.ConnState(sf, ConnStateActive)
+					}
 				//case uStopDtActive:
 				//	sf.sendUFrame(uStopDtConfirm)
 				//	atomic.StoreUint32(&sf.isActive, inactive)
 				case uStopDtConfirm:
 					atomic.StoreUint32(&sf.isActive, inactive)
 					sf.stopDtActiveSendSince.Store(willNotTimeout)
-					// notify deactivation
-					sf.onDeactivated(sf)
+					if sf.ConnState != nil {
+						sf.ConnState(sf, ConnStateIdle)
+					}
 				case uTestFrActive:
 					sf.sendUFrame(uTestFrConfirm)
 				case uTestFrConfirm:

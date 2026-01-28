@@ -9,20 +9,16 @@ import (
 
 func main() {
 	srv := cs104.NewServer(&mysrv{})
-	srv.SetOnConnectionHandler(func(c asdu.Connect) {
-		log.Println("on connect")
-	})
-	srv.SetConnectionLostHandler(func(c asdu.Connect) {
-		log.Println("connect lost")
-	})
-	srv.LogMode(true)
+	srv.ConnState = func(c asdu.Connect, s cs104.ConnState) {
+		log.Printf("conn state: %s", s)
+	}
 	// go func() {
 	// 	time.Sleep(time.Second * 20)
 	// 	log.Println("try ooooooo", err)
 	// 	err := srv.Close()
 	// 	log.Println("ooooooo", err)
 	// }()
-	srv.ListenAndServer(":2404")
+	_ = srv.ListenAndServe(":2404")
 }
 
 type mysrv struct{}

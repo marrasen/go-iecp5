@@ -27,20 +27,22 @@ func main() {
 
 	client.SetLogLevel(clog.LevelError)
 
-	client.SetOnConnectHandler(func(c *cs104.Client) {
-		fmt.Println("Connected")
-		c.SendStartDt() // Send startDt activation command
-	})
-	client.SetOnActivatedHandler(func(c *cs104.Client) {
-		fmt.Println("Activated, sending interrogation command")
-		err := c.InterrogationCmd(asdu.CauseOfTransmission{
-			IsTest:     false,
-			IsNegative: false,
-			Cause:      asdu.Activation,
-		}, asdu.CommonAddr(1), asdu.QOIStation)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
+	client.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+		switch s {
+		case cs104.ConnStateNew:
+			fmt.Println("Connected")
+			c.(*cs104.Client).SendStartDt() // Send startDt activation command
+		case cs104.ConnStateActive:
+			fmt.Println("Activated, sending interrogation command")
+			err := c.(*cs104.Client).InterrogationCmd(asdu.CauseOfTransmission{
+				IsTest:     false,
+				IsNegative: false,
+				Cause:      asdu.Activation,
+			}, asdu.CommonAddr(1), asdu.QOIStation)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
 		}
 	})
 

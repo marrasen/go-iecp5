@@ -53,63 +53,65 @@ func main() {
 	client := cs104.NewClient(cliHandler, opt)
 	client.SetLogLevel(clog.LevelError)
 
-	client.SetOnConnectHandler(func(c *cs104.Client) {
-		fmt.Println("Connected, sending StartDT_ACT...")
-		c.SendStartDt()
-	})
-	client.SetOnActivatedHandler(func(c *cs104.Client) {
-		fmt.Println("Link activated. Demonstrating SBO (Select then Operate)...")
+	client.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+		switch s {
+		case cs104.ConnStateNew:
+			fmt.Println("Connected, sending StartDT_ACT...")
+			c.(*cs104.Client).SendStartDt()
+		case cs104.ConnStateActive:
+			fmt.Println("Link activated. Demonstrating SBO (Select then Operate)...")
 
-		// Define the common address (CA) and information object address (IOA)
-		ca := asdu.CommonAddr(1)
-		ioa := asdu.InfoObjAddr(1)
+			// Define the common address (CA) and information object address (IOA)
+			ca := asdu.CommonAddr(1)
+			ioa := asdu.InfoObjAddr(1)
 
-		// 1) SEND SELECT: build a single command with InSelect=true.
-		//    Here we command Value=true (e.g., close circuit breaker) with a short pulse.
-		selectQoc := asdu.QualifierOfCommand{Qual: asdu.QOCShortPulseDuration, InSelect: true}
-		coa := asdu.CauseOfTransmission{Cause: asdu.Activation}
-		fmt.Printf("Sending SELECT for IOA=%d CA=%d...\n", ioa, ca)
-		if err := asdu.SingleCmd(c, asdu.C_SC_NA_1, coa, ca, asdu.SingleCommandInfo{
-			Ioa:   ioa,
-			Value: true,
-			Qoc:   selectQoc,
-		}); err != nil {
-			fmt.Println("Failed to send SELECT:", err)
-			return
-		}
+			// 1) SEND SELECT: build a single command with InSelect=true.
+			//    Here we command Value=true (e.g., close circuit breaker) with a short pulse.
+			selectQoc := asdu.QualifierOfCommand{Qual: asdu.QOCShortPulseDuration, InSelect: true}
+			coa := asdu.CauseOfTransmission{Cause: asdu.Activation}
+			fmt.Printf("Sending SELECT for IOA=%d CA=%d...\n", ioa, ca)
+			if err := asdu.SingleCmd(c, asdu.C_SC_NA_1, coa, ca, asdu.SingleCommandInfo{
+				Ioa:   ioa,
+				Value: true,
+				Qoc:   selectQoc,
+			}); err != nil {
+				fmt.Println("Failed to send SELECT:", err)
+				return
+			}
 
-		// Wait for select confirmation (basic demo timeout)
-		selectCtx, cancelSelect := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancelSelect()
-		select {
-		case <-cliHandler.selectAckCh:
-			fmt.Println("SELECT confirmed by outstation")
-		case <-selectCtx.Done():
-			fmt.Println("SELECT timed out waiting for confirmation")
-			return
-		}
+			// Wait for select confirmation (basic demo timeout)
+			selectCtx, cancelSelect := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelSelect()
+			select {
+			case <-cliHandler.selectAckCh:
+				fmt.Println("SELECT confirmed by outstation")
+			case <-selectCtx.Done():
+				fmt.Println("SELECT timed out waiting for confirmation")
+				return
+			}
 
-		// 2) SEND EXECUTE: same command but InSelect=false.
-		execQoc := asdu.QualifierOfCommand{Qual: asdu.QOCShortPulseDuration, InSelect: false}
-		fmt.Printf("Sending EXECUTE for IOA=%d CA=%d...\n", ioa, ca)
-		if err := asdu.SingleCmd(c, asdu.C_SC_NA_1, coa, ca, asdu.SingleCommandInfo{
-			Ioa:   ioa,
-			Value: true,
-			Qoc:   execQoc,
-		}); err != nil {
-			fmt.Println("Failed to send EXECUTE:", err)
-			return
-		}
+			// 2) SEND EXECUTE: same command but InSelect=false.
+			execQoc := asdu.QualifierOfCommand{Qual: asdu.QOCShortPulseDuration, InSelect: false}
+			fmt.Printf("Sending EXECUTE for IOA=%d CA=%d...\n", ioa, ca)
+			if err := asdu.SingleCmd(c, asdu.C_SC_NA_1, coa, ca, asdu.SingleCommandInfo{
+				Ioa:   ioa,
+				Value: true,
+				Qoc:   execQoc,
+			}); err != nil {
+				fmt.Println("Failed to send EXECUTE:", err)
+				return
+			}
 
-		// Wait for execute confirmation (basic demo timeout)
-		execCtx, cancelExec := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancelExec()
-		select {
-		case <-cliHandler.executeAckCh:
-			fmt.Println("EXECUTE confirmed by outstation")
-		case <-execCtx.Done():
-			fmt.Println("EXECUTE timed out waiting for confirmation")
-			return
+			// Wait for execute confirmation (basic demo timeout)
+			execCtx, cancelExec := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelExec()
+			select {
+			case <-cliHandler.executeAckCh:
+				fmt.Println("EXECUTE confirmed by outstation")
+			case <-execCtx.Done():
+				fmt.Println("EXECUTE timed out waiting for confirmation")
+				return
+			}
 		}
 	})
 

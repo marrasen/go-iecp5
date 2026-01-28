@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/marrasen/go-iecp5/asdu"
@@ -21,17 +22,17 @@ const timeoutResolution = 100 * time.Millisecond
 
 // Server the common server
 type Server struct {
-	config         Config
-	params         asdu.Params
-	handler        Handler
-	TLSConfig      *tls.Config
-	mux            sync.Mutex
-	sessions       map[*SrvSession]struct{}
-	listen         net.Listener
-	onConnection   func(asdu.Connect)
-	connectionLost func(asdu.Connect)
+	config    Config
+	params    asdu.Params
+	handler   Handler
+	ConnState func(asdu.Connect, ConnState)
+	TLSConfig *tls.Config
+	mux       sync.Mutex
+	sessions  map[*SrvSession]struct{}
+	listen    net.Listener
 	clog.Clog
-	wg sync.WaitGroup
+	wg      sync.WaitGroup
+	closing uint32
 }
 
 // NewServer new a server, default config and default asdu.ParamsWide params
@@ -65,12 +66,12 @@ func (sf *Server) SetParams(p *asdu.Params) *Server {
 	return sf
 }
 
-// ListenAndServer run the server
-func (sf *Server) ListenAndServer(addr string) {
+// ListenAndServe runs the server until stopped or it fails.
+func (sf *Server) ListenAndServe(addr string) error {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		sf.Error("server run failed, %v", err)
-		return
+		return err
 	}
 	sf.mux.Lock()
 	sf.listen = listen
@@ -86,8 +87,11 @@ func (sf *Server) ListenAndServer(addr string) {
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
+			if atomic.LoadUint32(&sf.closing) != 0 {
+				return ErrServerClosed
+			}
 			sf.Error("server run failed, %v", err)
-			return
+			return err
 		}
 
 		sf.wg.Add(1)
@@ -102,9 +106,8 @@ func (sf *Server) ListenAndServer(addr string) {
 				rcvRaw:   make(chan []byte, sf.config.RecvUnAckLimitW<<5),
 				sendRaw:  make(chan []byte, sf.config.SendUnAckLimitK<<5), // may not block!
 
-				onConnection:   sf.onConnection,
-				connectionLost: sf.connectionLost,
-				Clog:           sf.Clog,
+				connState: sf.ConnState,
+				Clog:      sf.Clog,
 			}
 			sf.mux.Lock()
 			sf.sessions[sess] = struct{}{}
@@ -120,6 +123,7 @@ func (sf *Server) ListenAndServer(addr string) {
 
 // Close close the server
 func (sf *Server) Close() error {
+	atomic.StoreUint32(&sf.closing, 1)
 	var err error
 
 	sf.mux.Lock()
@@ -127,9 +131,34 @@ func (sf *Server) Close() error {
 		err = sf.listen.Close()
 		sf.listen = nil
 	}
+	sessions := make([]*SrvSession, 0, len(sf.sessions))
+	for s := range sf.sessions {
+		sessions = append(sessions, s)
+	}
 	sf.mux.Unlock()
-	sf.wg.Wait()
+
+	for _, s := range sessions {
+		_ = s.Close()
+	}
 	return err
+}
+
+// Shutdown gracefully stops the server and waits for sessions to close.
+func (sf *Server) Shutdown(ctx context.Context) error {
+	if err := sf.Close(); err != nil {
+		return err
+	}
+	done := make(chan struct{})
+	go func() {
+		sf.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-done:
+		return nil
+	}
 }
 
 // Send imp interface Connect
@@ -151,14 +180,4 @@ func (sf *Server) UnderlyingConn() net.Conn { return nil }
 // SetInfoObjTimeZone set info object time zone
 func (sf *Server) SetInfoObjTimeZone(zone *time.Location) {
 	sf.params.InfoObjTimeZone = zone
-}
-
-// SetOnConnectionHandler set on connect handler
-func (sf *Server) SetOnConnectionHandler(f func(asdu.Connect)) {
-	sf.onConnection = f
-}
-
-// SetConnectionLostHandler set connect lost handler
-func (sf *Server) SetConnectionLostHandler(f func(asdu.Connect)) {
-	sf.connectionLost = f
 }

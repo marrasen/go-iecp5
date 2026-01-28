@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -19,16 +20,13 @@ func main() {
 
 	srv := cs104.NewServerSpecial(&mysrv{}, option)
 
-	srv.LogMode(true)
-
-	srv.SetOnConnectHandler(func(c asdu.Connect) {
-		_, _ = c.UnderlyingConn().Write([]byte{0x68, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x46, 0x01, 0x04, 0x00, 0xa0, 0xaf, 0xbd, 0xd8, 0x0a, 0xf4})
-		log.Println("connected")
+	srv.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+		if s == cs104.ConnStateNew {
+			_, _ = c.UnderlyingConn().Write([]byte{0x68, 0x0e, 0x00, 0x00, 0x00, 0x00, 0x46, 0x01, 0x04, 0x00, 0xa0, 0xaf, 0xbd, 0xd8, 0x0a, 0xf4})
+		}
+		log.Printf("conn state: %s", s)
 	})
-	srv.SetConnectionLostHandler(func(c asdu.Connect) {
-		log.Println("disconnected")
-	})
-	if err = srv.Start(); err != nil {
+	if err = srv.Start(context.Background()); err != nil {
 		panic(err)
 	}
 

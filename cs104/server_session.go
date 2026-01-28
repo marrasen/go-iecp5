@@ -49,8 +49,7 @@ type SrvSession struct {
 
 	clog.Clog
 
-	onConnection   func(asdu.Connect)
-	connectionLost func(asdu.Connect)
+	connState func(asdu.Connect, ConnState)
 
 	wg     sync.WaitGroup
 	cancel context.CancelFunc
@@ -203,16 +202,16 @@ func (sf *SrvSession) run(ctx context.Context) error {
 		sf.Debug("TX iFrame %v", iAPCI{seqNo, sf.seqNoRcv})
 		sf.sendRaw <- iframe
 	}
-	if sf.onConnection != nil {
-		sf.onConnection(sf)
+	if sf.connState != nil {
+		sf.connState(sf, ConnStateNew)
 	}
 	defer func() {
 		sf.setConnectStatus(disconnected)
 		checkTicker.Stop()
 		_ = sf.conn.Close() // Closing the connection triggers cancel (cascade effect)
 		sf.wg.Wait()
-		if sf.connectionLost != nil {
-			sf.connectionLost(sf)
+		if sf.connState != nil {
+			sf.connState(sf, ConnStateClosed)
 		}
 		sf.Debug("run stopped!")
 	}()
@@ -303,12 +302,18 @@ func (sf *SrvSession) run(ctx context.Context) error {
 				case uStartDtActive:
 					sendUFrame(uStartDtConfirm)
 					isActive = true
+					if sf.connState != nil {
+						sf.connState(sf, ConnStateActive)
+					}
 				// case uStartDtConfirm:
 				// 	isActive = true
 				// 	startDtActiveSendSince = willNotTimeout
 				case uStopDtActive:
 					sendUFrame(uStopDtConfirm)
 					isActive = false
+					if sf.connState != nil {
+						sf.connState(sf, ConnStateIdle)
+					}
 				// case uStopDtConfirm:
 				// 	isActive = false
 				// 	stopDtActiveSendSince = willNotTimeout
@@ -553,4 +558,17 @@ func (sf *SrvSession) Send(u *asdu.ASDU) error {
 // UnderlyingConn got under net.conn
 func (sf *SrvSession) UnderlyingConn() net.Conn {
 	return sf.conn
+}
+
+// Close cancels the session and closes the underlying connection.
+func (sf *SrvSession) Close() error {
+	sf.rwMux.Lock()
+	if sf.cancel != nil {
+		sf.cancel()
+	}
+	sf.rwMux.Unlock()
+	if sf.conn != nil {
+		return sf.conn.Close()
+	}
+	return nil
 }

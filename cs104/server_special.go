@@ -20,9 +20,7 @@ type ServerSpecial interface {
 	IsClosed() bool
 	Start(ctx context.Context) error
 	Close() error
-
-	SetOnConnectHandler(f func(c asdu.Connect))
-	SetConnectionLostHandler(f func(c asdu.Connect))
+	SetConnStateHandler(f func(c asdu.Connect, s ConnState))
 
 	SetLogLevel(level clog.Level)
 	SetLogProvider(p clog.LogProvider)
@@ -53,14 +51,9 @@ func NewServerSpecial(handler Handler, o *ClientOption) ServerSpecial {
 	}
 }
 
-// SetOnConnectHandler set on connected handler
-func (sf *serverSpec) SetOnConnectHandler(f func(conn asdu.Connect)) {
-	sf.onConnection = f
-}
-
-// SetConnectionLostHandler set connection lost handler
-func (sf *serverSpec) SetConnectionLostHandler(f func(c asdu.Connect)) {
-	sf.connectionLost = f
+// SetConnStateHandler sets the connection lifecycle handler.
+func (sf *serverSpec) SetConnStateHandler(f func(c asdu.Connect, s ConnState)) {
+	sf.connState = f
 }
 
 // Start begins the server's operation and establishes a connection to the remote server if specified.

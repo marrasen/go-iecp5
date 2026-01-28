@@ -20,6 +20,32 @@ type seqPending struct {
 	sendTime time.Time
 }
 
+// ConnState represents the lifecycle state of a server connection.
+type ConnState int
+
+// Connection states, similar to net/http.
+const (
+	ConnStateNew ConnState = iota
+	ConnStateActive
+	ConnStateIdle
+	ConnStateClosed
+)
+
+func (s ConnState) String() string {
+	switch s {
+	case ConnStateNew:
+		return "new"
+	case ConnStateActive:
+		return "active"
+	case ConnStateIdle:
+		return "idle"
+	case ConnStateClosed:
+		return "closed"
+	default:
+		return "unknown"
+	}
+}
+
 func openConnection(ctx context.Context, uri *url.URL, tlsc *tls.Config, timeout time.Duration, dialCtx func(ctx context.Context, network, address string) (net.Conn, error)) (net.Conn, error) {
 	if uri == nil {
 		return nil, errors.New("nil uri")

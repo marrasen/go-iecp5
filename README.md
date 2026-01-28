@@ -65,6 +65,38 @@ func (myHandler) Handle(c asdu.Connect, msg asdu.Message) error {
 }
 ```
 
+## Connection lifecycle (cs104)
+
+Use a ConnState callback for connection lifecycle events and `ListenAndServe`/`Shutdown` for server
+lifecycle control.
+
+```go
+srv := cs104.NewServer(&myHandler{})
+srv.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+	log.Printf("conn state: %s", s)
+})
+
+go func() {
+	if err := srv.ListenAndServe(":2404"); err != nil && !errors.Is(err, cs104.ErrServerClosed) {
+		log.Printf("listen failed: %v", err)
+	}
+}()
+
+// Later...
+_ = srv.Shutdown(context.Background())
+```
+
+Clients use the same ConnState mechanism:
+
+```go
+cli := cs104.NewClient(&myHandler{}, option)
+cli.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+	if s == cs104.ConnStateNew {
+		c.(*cs104.Client).SendStartDt()
+	}
+})
+```
+
 # Reference
 lib60870 C library [lib60870](https://github.com/mz-automation/lib60870)  
 lib60870 C library docs [lib60870 doc](https://support.mz-automation.de/doc/lib60870/latest/group__CS104__MASTER.html)
