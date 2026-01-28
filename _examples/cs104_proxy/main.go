@@ -187,11 +187,11 @@ func main() {
 	}
 
 	server := cs104.NewServer(inboundHandler{proxy: p})
-	server.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+	server.ConnState = func(c asdu.Connect, s cs104.ConnState) {
 		if s == cs104.ConnStateClosed {
 			p.dropDownstreamConn(c)
 		}
-	})
+	}
 
 	go func() {
 		<-ctx.Done()

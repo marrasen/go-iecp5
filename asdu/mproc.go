@@ -55,42 +55,16 @@ func single(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_SP_NA_1, M_SP_TA_1, M_SP_TB_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-
-		value := byte(0)
-		if v.Value {
-			value = 0x01
-		}
-		u.appendBytes(value | byte(v.Qds&0xf0))
-		switch typeID {
-		case M_SP_NA_1:
-		case M_SP_TA_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_SP_TB_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := SinglePointMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // Single sends a type identification [M_SP_NA_1]. Single-point information without timestamp
@@ -162,38 +136,16 @@ func double(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-
-		u.appendBytes(byte(v.Value&0x03) | byte(v.Qds&0xf0))
-		switch typeID {
-		case M_DP_NA_1:
-		case M_DP_TA_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_DP_TB_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := DoublePointMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // Double sends a type identification [M_DP_NA_1]. Double-point information
@@ -265,38 +217,16 @@ func step(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, ca
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1, M_SP_TB_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-
-		u.appendBytes(v.Value.Value(), byte(v.Qds))
-		switch typeID {
-		case M_ST_NA_1:
-		case M_ST_TA_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_SP_TB_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := StepPositionMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // Step sends a type identification [M_ST_NA_1]. Step position information
@@ -368,38 +298,16 @@ func bitString32(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmiss
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-		u.appendBitsString32(v.Value).appendBytes(byte(v.Qds))
-
-		switch typeID {
-		case M_BO_NA_1:
-		case M_BO_TA_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_BO_TB_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := BitString32Msg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // BitString32 sends a type identification [M_BO_NA_1]. Bitstring (32 bits)
@@ -463,39 +371,16 @@ func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	if err := checkValid(c, typeID, isSequence, len(attrs)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(attrs)); err != nil {
-		return err
+	switch typeID {
+	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range attrs {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-		u.appendNormalize(v.Value)
-		switch typeID {
-		case M_ME_NA_1:
-			u.appendBytes(byte(v.Qds))
-		case M_ME_TA_1:
-			u.appendBytes(byte(v.Qds)).appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_ME_TD_1:
-			u.appendBytes(byte(v.Qds)).appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_ME_ND_1: // without quality
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := MeasuredValueNormalMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(attrs)),
+		Items: attrs,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // MeasuredValueNormal sends a type identification [M_ME_NA_1]. Measured value, normalized value
@@ -582,37 +467,16 @@ func measuredValueScaled(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-		u.appendScaled(v.Value).appendBytes(byte(v.Qds))
-		switch typeID {
-		case M_ME_NB_1:
-		case M_ME_TB_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_ME_TE_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := MeasuredValueScaledMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // MeasuredValueScaled sends a type identification [M_ME_NB_1]. Measured value, scaled value
@@ -680,38 +544,16 @@ func measuredValueFloat(c Connect, typeID TypeID, isSequence bool, coa CauseOfTr
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-
-		u.appendFloat32(v.Value).appendBytes(byte(v.Qds & 0xf1))
-		switch typeID {
-		case M_ME_NC_1:
-		case M_ME_TC_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_ME_TF_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := MeasuredValueFloatMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // MeasuredValueFloat sends a type identification [M_ME_TF_1]. Measured value, short floating point
@@ -777,37 +619,16 @@ func integratedTotals(c Connect, typeID TypeID, isSequence bool, coa CauseOfTran
 	if err := checkValid(c, typeID, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-		u.appendBinaryCounterReading(v.Value)
-		switch typeID {
-		case M_IT_NA_1:
-		case M_IT_TA_1:
-			u.appendBytes(CP24Time2a(v.Time, u.InfoObjTimeZone)...)
-		case M_IT_TB_1:
-			u.appendBytes(CP56Time2a(v.Time, u.InfoObjTimeZone)...)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := IntegratedTotalsMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // IntegratedTotals sends a type identification [M_IT_NA_1]. Integrated totals
@@ -881,33 +702,16 @@ func eventOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmissio
 	if err := checkValid(c, typeID, false, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	switch typeID {
+	case M_EP_TA_1, M_EP_TD_1:
+	default:
+		return ErrTypeIDNotMatch
 	}
-	for _, v := range infos {
-		if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-			return err
-		}
-		u.appendBytes(byte(v.Event&0x03) | byte(v.Qdp&0xf8))
-		u.appendCP16Time2a(v.Msec)
-		switch typeID {
-		case M_EP_TA_1:
-			u.appendCP24Time2a(v.Time, u.InfoObjTimeZone)
-		case M_EP_TD_1:
-			u.appendCP56Time2a(v.Time, u.InfoObjTimeZone)
-		default:
-			return ErrTypeIDNotMatch
-		}
+	msg := EventOfProtectionMsg{
+		H:     newMessageHeader(c, typeID, coa, ca, false, len(infos)),
+		Items: infos,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // EventOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TA_1]. Event of protection equipment with CP24Time2a timestamp
@@ -948,30 +752,16 @@ func packedStartEventsOfProtectionEquipment(c Connect, typeID TypeID, coa CauseO
 	if err := checkValid(c, typeID, false, 1); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(info.Ioa); err != nil {
-		return err
-	}
-	u.appendBytes(byte(info.Event), byte(info.Qdp)&0xf1)
-	u.appendCP16Time2a(info.Msec)
 	switch typeID {
-	case M_EP_TB_1:
-		u.appendCP24Time2a(info.Time, u.InfoObjTimeZone)
-	case M_EP_TE_1:
-		u.appendCP56Time2a(info.Time, u.InfoObjTimeZone)
+	case M_EP_TB_1, M_EP_TE_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-
-	return c.Send(u)
+	msg := PackedStartEventsMsg{
+		H:    newMessageHeader(c, typeID, coa, ca, false, 1),
+		Item: info,
+	}
+	return sendEncoded(c, msg)
 }
 
 // PackedStartEventsOfProtectionEquipmentCP24Time2a sends a type identification [M_EP_TB_1]. Packed start events of protection equipment with CP24Time2a timestamp
@@ -1012,30 +802,16 @@ func packedOutputCircuitInfo(c Connect, typeID TypeID, coa CauseOfTransmission, 
 	if err := checkValid(c, typeID, false, 1); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(info.Ioa); err != nil {
-		return err
-	}
-	u.appendBytes(byte(info.Oci), byte(info.Qdp)&0xf1)
-	u.appendCP16Time2a(info.Msec)
 	switch typeID {
-	case M_EP_TC_1:
-		u.appendCP24Time2a(info.Time, u.InfoObjTimeZone)
-	case M_EP_TF_1:
-		u.appendCP56Time2a(info.Time, u.InfoObjTimeZone)
+	case M_EP_TC_1, M_EP_TF_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-
-	return c.Send(u)
+	msg := PackedOutputCircuitMsg{
+		H:    newMessageHeader(c, typeID, coa, ca, false, 1),
+		Item: info,
+	}
+	return sendEncoded(c, msg)
 }
 
 // PackedOutputCircuitInfoCP24Time2a sends a type identification [M_EP_TC_1]. Packed output circuit information of protection equipment with CP24Time2a timestamp (grouped)
@@ -1085,27 +861,9 @@ func PackedSinglePointWithSCD(c Connect, isSequence bool, coa CauseOfTransmissio
 	if err := checkValid(c, M_PS_NA_1, isSequence, len(infos)); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		M_PS_NA_1,
-		VariableStruct{IsSequence: isSequence},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.SetVariableNumber(len(infos)); err != nil {
-		return err
+	msg := PackedSinglePointWithSCDMsg{
+		H:     newMessageHeader(c, M_PS_NA_1, coa, ca, isSequence, len(infos)),
+		Items: infos,
 	}
-	once := false
-	for _, v := range infos {
-		if !isSequence || !once {
-			once = true
-			if err := u.appendInfoObjAddr(v.Ioa); err != nil {
-				return err
-			}
-		}
-		u.appendStatusAndStatusChangeDetection(v.Scd)
-		u.appendBytes(byte(v.Qds))
-	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }

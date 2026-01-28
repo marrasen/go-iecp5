@@ -28,19 +28,12 @@ func InterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qoi Qua
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		C_IC_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := InterrogationCmdMsg{
+		H:   newMessageHeader(c, C_IC_NA_1, coa, ca, false, 1),
+		IOA: InfoObjAddrIrrelevant,
+		QOI: qoi,
 	}
-	u.appendBytes(byte(qoi))
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // CounterInterrogationCmd send Counter Interrogation command [C_CI_NA_1]，计数量召唤命令，只有单个信息对象(SQ = 0)
@@ -60,18 +53,12 @@ func CounterInterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		return err
 	}
 	coa.Cause = Activation
-	u := NewASDU(c.Params(), Identifier{
-		C_CI_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := CounterInterrogationCmdMsg{
+		H:   newMessageHeader(c, C_CI_NA_1, coa, ca, false, 1),
+		IOA: InfoObjAddrIrrelevant,
+		QCC: qcc,
 	}
-	u.appendBytes(qcc.Value())
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ReadCmd send read command [C_RD_NA_1], Read command, single information object (SQ = 0)
@@ -89,17 +76,11 @@ func ReadCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa InfoObjAddr)
 		return err
 	}
 	coa.Cause = Request
-	u := NewASDU(c.Params(), Identifier{
-		C_RD_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(ioa); err != nil {
-		return err
+	msg := ReadCmdMsg{
+		H:   newMessageHeader(c, C_RD_NA_1, coa, ca, false, 1),
+		IOA: ioa,
 	}
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ClockSynchronizationCmd send clock sync command [C_CS_NA_1], Clock synchronization command, single information object (SQ = 0)
@@ -119,18 +100,12 @@ func ClockSynchronizationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		return err
 	}
 	coa.Cause = Activation
-	u := NewASDU(c.Params(), Identifier{
-		C_CS_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := ClockSyncCmdMsg{
+		H:    newMessageHeader(c, C_CS_NA_1, coa, ca, false, 1),
+		IOA:  InfoObjAddrIrrelevant,
+		Time: t,
 	}
-	u.appendBytes(CP56Time2a(t, u.InfoObjTimeZone)...)
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // TestCommand send test command [C_TS_NA_1], Test command, single information object (SQ = 0)
@@ -149,18 +124,12 @@ func TestCommand(c Connect, coa CauseOfTransmission, ca CommonAddr) error {
 		return err
 	}
 	coa.Cause = Activation
-	u := NewASDU(c.Params(), Identifier{
-		C_TS_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := TestCmdMsg{
+		H:    newMessageHeader(c, C_TS_NA_1, coa, ca, false, 1),
+		IOA:  InfoObjAddrIrrelevant,
+		Test: true,
 	}
-	u.appendBytes(byte(FBPTestWord&0xff), byte(FBPTestWord>>8))
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ResetProcessCmd send reset process command [C_RP_NA_1], Reset process command, single information object (SQ = 0)
@@ -179,18 +148,12 @@ func ResetProcessCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qrp Qual
 		return err
 	}
 	coa.Cause = Activation
-	u := NewASDU(c.Params(), Identifier{
-		C_RP_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := ResetProcessCmdMsg{
+		H:   newMessageHeader(c, C_RP_NA_1, coa, ca, false, 1),
+		IOA: InfoObjAddrIrrelevant,
+		QRP: qrp,
 	}
-	u.appendBytes(byte(qrp))
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // DelayAcquireCommand send delay acquire command [C_CD_NA_1], Delay acquisition command, single information object (SQ = 0)
@@ -212,19 +175,12 @@ func DelayAcquireCommand(c Connect, coa CauseOfTransmission, ca CommonAddr, msec
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		C_CD_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := DelayAcquireCmdMsg{
+		H:    newMessageHeader(c, C_CD_NA_1, coa, ca, false, 1),
+		IOA:  InfoObjAddrIrrelevant,
+		Msec: msec,
 	}
-	u.appendCP16Time2a(msec)
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // TestCommandCP56Time2a send test command [C_TS_TA_1], Test command, single information object (SQ = 0)
@@ -241,17 +197,11 @@ func TestCommandCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, t 
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		C_TS_TA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
-		return err
+	msg := TestCmdCP56Msg{
+		H:    newMessageHeader(c, C_TS_TA_1, coa, ca, false, 1),
+		IOA:  InfoObjAddrIrrelevant,
+		Test: true,
+		Time: t,
 	}
-	u.appendUint16(FBPTestWord)
-	u.appendCP56Time2a(t, u.InfoObjTimeZone)
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }

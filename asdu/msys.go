@@ -16,17 +16,10 @@ func EndOfInitialization(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa 
 	}
 
 	coa.Cause = Initialized
-	u := NewASDU(c.Params(), Identifier{
-		M_EI_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(ioa); err != nil {
-		return err
+	msg := EndOfInitMsg{
+		H:   newMessageHeader(c, M_EI_NA_1, coa, ca, false, 1),
+		IOA: ioa,
+		COI: coi,
 	}
-	u.appendBytes(coi.Value())
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }

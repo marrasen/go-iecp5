@@ -39,31 +39,16 @@ func SingleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-	value := cmd.Qoc.Value()
-	if cmd.Value {
-		value |= 0x01
-	}
-	u.appendBytes(value)
 	switch typeID {
-	case C_SC_NA_1:
-	case C_SC_TA_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_SC_NA_1, C_SC_TA_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-	return c.Send(u)
+	msg := SingleCommandMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // DoubleCommandInfo double command information object
@@ -97,27 +82,16 @@ func DoubleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-
-	u.appendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
 	switch typeID {
-	case C_DC_NA_1:
-	case C_DC_TA_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_DC_NA_1, C_DC_TA_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-	return c.Send(u)
+	msg := DoubleCommandMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // StepCommandInfo step command information object
@@ -150,27 +124,16 @@ func StepCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, c
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-
-	u.appendBytes(cmd.Qoc.Value() | byte(cmd.Value&0x03))
 	switch typeID {
-	case C_RC_NA_1:
-	case C_RC_TA_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_RC_NA_1, C_RC_TA_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-	return c.Send(u)
+	msg := StepCommandMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // SetpointCommandNormalInfo setpoint command, normalized value information object
@@ -203,26 +166,16 @@ func SetpointCmdNormal(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-	u.appendNormalize(cmd.Value).appendBytes(cmd.Qos.Value())
 	switch typeID {
-	case C_SE_NA_1:
-	case C_SE_TA_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_SE_NA_1, C_SE_TA_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-	return c.Send(u)
+	msg := SetpointNormalMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // SetpointCommandScaledInfo setpoint command, scaled value information object
@@ -255,26 +208,16 @@ func SetpointCmdScaled(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-	u.appendScaled(cmd.Value).appendBytes(cmd.Qos.Value())
 	switch typeID {
-	case C_SE_NB_1:
-	case C_SE_TB_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_SE_NB_1, C_SE_TB_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-	return c.Send(u)
+	msg := SetpointScaledMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // SetpointCommandFloatInfo setpoint command, short floating-point value information object
@@ -307,28 +250,16 @@ func SetpointCmdFloat(c Connect, typeID TypeID, coa CauseOfTransmission, ca Comm
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-
-	u.appendFloat32(cmd.Value).appendBytes(cmd.Qos.Value())
-
 	switch typeID {
-	case C_SE_NC_1:
-	case C_SE_TC_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_SE_NC_1, C_SE_TC_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-
-	return c.Send(u)
+	msg := SetpointFloatMsg{
+		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }
 
 // BitsString32CommandInfo bitstring (32-bit) command information object
@@ -361,26 +292,14 @@ func BitsString32Cmd(c Connect, typeID TypeID, coa CauseOfTransmission, commonAd
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	u := NewASDU(c.Params(), Identifier{
-		typeID,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		commonAddr,
-	})
-	if err := u.appendInfoObjAddr(cmd.Ioa); err != nil {
-		return err
-	}
-
-	u.appendBitsString32(cmd.Value)
-
 	switch typeID {
-	case C_BO_NA_1:
-	case C_BO_TA_1:
-		u.appendBytes(CP56Time2a(cmd.Time, u.InfoObjTimeZone)...)
+	case C_BO_NA_1, C_BO_TA_1:
 	default:
 		return ErrTypeIDNotMatch
 	}
-
-	return c.Send(u)
+	msg := BitsString32CmdMsg{
+		H:   newMessageHeader(c, typeID, coa, commonAddr, false, 1),
+		Cmd: cmd,
+	}
+	return sendEncoded(c, msg)
 }

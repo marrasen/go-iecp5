@@ -35,20 +35,11 @@ func ParameterNormal(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		P_ME_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
-		return err
+	msg := ParameterNormalMsg{
+		H:     newMessageHeader(c, P_ME_NA_1, coa, ca, false, 1),
+		Param: p,
 	}
-	u.appendNormalize(p.Value)
-	u.appendBytes(p.Qpm.Value())
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ParameterScaledInfo measurement parameter, scaled value information object
@@ -81,19 +72,11 @@ func ParameterScaled(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		P_ME_NB_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
-		return err
+	msg := ParameterScaledMsg{
+		H:     newMessageHeader(c, P_ME_NB_1, coa, ca, false, 1),
+		Param: p,
 	}
-	u.appendScaled(p.Value).appendBytes(p.Qpm.Value())
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ParameterFloatInfo measurement parameter, short floating-point value information object
@@ -126,19 +109,11 @@ func ParameterFloat(c Connect, coa CauseOfTransmission, ca CommonAddr, p Paramet
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		P_ME_NC_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
-		return err
+	msg := ParameterFloatMsg{
+		H:     newMessageHeader(c, P_ME_NC_1, coa, ca, false, 1),
+		Param: p,
 	}
-	u.appendFloat32(p.Value).appendBytes(p.Qpm.Value())
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
 
 // ParameterActivationInfo parameter activation information object
@@ -167,17 +142,9 @@ func ParameterActivation(c Connect, coa CauseOfTransmission, ca CommonAddr, p Pa
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-
-	u := NewASDU(c.Params(), Identifier{
-		P_AC_NA_1,
-		VariableStruct{IsSequence: false, Number: 1},
-		coa,
-		0,
-		ca,
-	})
-	if err := u.appendInfoObjAddr(p.Ioa); err != nil {
-		return err
+	msg := ParameterActivationMsg{
+		H:     newMessageHeader(c, P_AC_NA_1, coa, ca, false, 1),
+		Param: p,
 	}
-	u.appendBytes(byte(p.Qpa))
-	return c.Send(u)
+	return sendEncoded(c, msg)
 }
