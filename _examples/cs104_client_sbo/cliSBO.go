@@ -42,7 +42,7 @@ func main() {
 	}
 
 	opt := cs104.NewOption()
-	if err := opt.AddRemoteServer(remote); err != nil {
+	if err := opt.SetRemoteServer(remote); err != nil {
 		panic(err)
 	}
 

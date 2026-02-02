@@ -46,7 +46,7 @@ type Client struct {
 	startDtActiveSendSince atomic.Value // Timeout interval while waiting for confirmation after sending StartDT-Active
 	stopDtActiveSendSince  atomic.Value // Timeout while waiting for confirmation after initiating StopDT-Active
 
-	// Connection status
+	// IecConnection status
 	status   uint32
 	rwMux    sync.RWMutex
 	isActive uint32

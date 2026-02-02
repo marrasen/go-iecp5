@@ -124,11 +124,13 @@ func (h inboundHandler) broadcast(c asdu.Connect, header asdu.Header) error {
 }
 
 type upstreamHandler struct {
-	proxy *proxy
-	ca    asdu.CommonAddr
+	logger *log.Logger
+	proxy  *proxy
+	ca     asdu.CommonAddr
 }
 
 func (h upstreamHandler) Handle(c asdu.Connect, msg asdu.Message) error {
+	h.logger.Printf("Received msg: ", msg.String())
 	down := h.proxy.getDownstream(h.ca)
 	if down == nil {
 		return nil
@@ -161,14 +163,22 @@ func main() {
 		}
 		ca := asdu.CommonAddr(i + 1)
 		opt := cs104.NewOption()
-		if err := opt.AddRemoteServer(remote); err != nil {
+		if err := opt.SetRemoteServer(remote); err != nil {
 			log.Fatalf("invalid remote %q: %v", remote, err)
 		}
-		handler := upstreamHandler{proxy: p, ca: ca}
+		handler := upstreamHandler{proxy: p, ca: ca, logger: logger}
 		client := cs104.NewClient(handler, opt)
 		client.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
-			if s == cs104.ConnStateNew {
+			switch s {
+			case cs104.ConnStateNew:
+				logger.Printf("upstream %s connected, sending StartDT_ACT...", remote)
 				c.(*cs104.Client).SendStartDt()
+			case cs104.ConnStateClosed:
+				logger.Printf("upstream %s disconnected", remote)
+			case cs104.ConnStateActive:
+				logger.Printf("upstream %s connected", remote)
+			case cs104.ConnStateIdle:
+				logger.Printf("upstream %s idle", remote)
 			}
 		})
 		p.upstream[ca] = client
@@ -188,8 +198,17 @@ func main() {
 
 	server := cs104.NewServer(inboundHandler{proxy: p})
 	server.ConnState = func(c asdu.Connect, s cs104.ConnState) {
-		if s == cs104.ConnStateClosed {
+		remoteAddr := c.UnderlyingConn().RemoteAddr().String()
+		switch s {
+		case cs104.ConnStateNew:
+			logger.Printf("New incoming connection: %s", remoteAddr)
+		case cs104.ConnStateActive:
+			logger.Printf("Incoming connection active: %s", remoteAddr)
+		case cs104.ConnStateClosed:
+			logger.Printf("Incoming connection closed, dropping downstream count: %s", remoteAddr)
 			p.dropDownstreamConn(c)
+		case cs104.ConnStateIdle:
+			logger.Printf("Incoming connection idle: %s", remoteAddr)
 		}
 	}
 

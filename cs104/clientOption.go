@@ -66,11 +66,11 @@ func (sf *ClientOption) SetDialContext(dial func(ctx context.Context, network, a
 	return sf
 }
 
-// AddRemoteServer adds a broker URI to the list of brokers to be used.
+// SetRemoteServer adds a broker URI to the list of brokers to be used.
 // The format should be scheme://host:port
 // Default values for hostname are "127.0.0.1", for schema is "tcp://".
 // An example broker URI would look like: tcp://foobar.com:1204
-func (sf *ClientOption) AddRemoteServer(server string) error {
+func (sf *ClientOption) SetRemoteServer(server string) error {
 	if len(server) > 0 && server[0] == ':' {
 		server = "127.0.0.1" + server
 	}

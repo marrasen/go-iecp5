@@ -3,9 +3,7 @@
 
 package asdu
 
-import (
-	"net"
-)
+import "net"
 
 // Connect interface
 type Connect interface {
