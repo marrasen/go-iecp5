@@ -135,7 +135,7 @@ type outboundHandler struct {
 	ca     asdu.CommonAddr
 }
 
-func (h outboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
+func (h outboundHandler) Handle(_ asdu.Connect, msg asdu.Message) {
 	h.logger.Printf("Received msg on ca %d. Message: %s", h.ca, msg.Header().ASDU().String())
 	inbounds := h.proxy.getAllInbound()
 	if len(inbounds) == 0 {
