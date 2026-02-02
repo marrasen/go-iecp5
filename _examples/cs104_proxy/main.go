@@ -74,7 +74,10 @@ func (h inboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
 	}
 
 	if ca == asdu.GlobalCommonAddr {
-		h.broadcast(header)
+		err := h.broadcast(header)
+		if err != nil {
+			h.proxy.logger.Printf("failed to broadcast: %v", err)
+		}
 		return
 	}
 
@@ -110,13 +113,19 @@ func (h inboundHandler) broadcast(header asdu.Header) error {
 	h.proxy.mu.RUnlock()
 
 	var firstErr error
+	targetCount := 0
 	for ca, out := range outbounds {
 		cloned := outMsg.Clone()
 		cloned.Identifier.CommonAddr = ca
-		if err := out.Send(cloned); err != nil && firstErr == nil {
-			firstErr = err
+		if err := out.Send(cloned); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			} else {
+				targetCount++
+			}
 		}
 	}
+	h.proxy.logger.Printf("Broadcasted to %d target(s)", targetCount)
 	return firstErr
 }
 
