@@ -28,7 +28,7 @@ func InterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qoi Qua
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := InterrogationCmdMsg{
+	msg := &InterrogationCmdMsg{
 		H:   newMessageHeader(c, C_IC_NA_1, coa, ca, false, 1),
 		IOA: InfoObjAddrIrrelevant,
 		QOI: qoi,
@@ -53,7 +53,7 @@ func CounterInterrogationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		return err
 	}
 	coa.Cause = Activation
-	msg := CounterInterrogationCmdMsg{
+	msg := &CounterInterrogationCmdMsg{
 		H:   newMessageHeader(c, C_CI_NA_1, coa, ca, false, 1),
 		IOA: InfoObjAddrIrrelevant,
 		QCC: qcc,
@@ -76,7 +76,7 @@ func ReadCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa InfoObjAddr)
 		return err
 	}
 	coa.Cause = Request
-	msg := ReadCmdMsg{
+	msg := &ReadCmdMsg{
 		H:   newMessageHeader(c, C_RD_NA_1, coa, ca, false, 1),
 		IOA: ioa,
 	}
@@ -100,7 +100,7 @@ func ClockSynchronizationCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, 
 		return err
 	}
 	coa.Cause = Activation
-	msg := ClockSyncCmdMsg{
+	msg := &ClockSyncCmdMsg{
 		H:    newMessageHeader(c, C_CS_NA_1, coa, ca, false, 1),
 		IOA:  InfoObjAddrIrrelevant,
 		Time: t,
@@ -124,7 +124,7 @@ func TestCommand(c Connect, coa CauseOfTransmission, ca CommonAddr) error {
 		return err
 	}
 	coa.Cause = Activation
-	msg := TestCmdMsg{
+	msg := &TestCmdMsg{
 		H:    newMessageHeader(c, C_TS_NA_1, coa, ca, false, 1),
 		IOA:  InfoObjAddrIrrelevant,
 		Test: true,
@@ -148,7 +148,7 @@ func ResetProcessCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, qrp Qual
 		return err
 	}
 	coa.Cause = Activation
-	msg := ResetProcessCmdMsg{
+	msg := &ResetProcessCmdMsg{
 		H:   newMessageHeader(c, C_RP_NA_1, coa, ca, false, 1),
 		IOA: InfoObjAddrIrrelevant,
 		QRP: qrp,
@@ -175,7 +175,7 @@ func DelayAcquireCommand(c Connect, coa CauseOfTransmission, ca CommonAddr, msec
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := DelayAcquireCmdMsg{
+	msg := &DelayAcquireCmdMsg{
 		H:    newMessageHeader(c, C_CD_NA_1, coa, ca, false, 1),
 		IOA:  InfoObjAddrIrrelevant,
 		Msec: msec,
@@ -197,7 +197,7 @@ func TestCommandCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, t 
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := TestCmdCP56Msg{
+	msg := &TestCmdCP56Msg{
 		H:    newMessageHeader(c, C_TS_TA_1, coa, ca, false, 1),
 		IOA:  InfoObjAddrIrrelevant,
 		Test: true,

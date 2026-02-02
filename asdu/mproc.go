@@ -60,7 +60,7 @@ func single(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := SinglePointMsg{
+	msg := &SinglePointMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -141,7 +141,7 @@ func double(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, 
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := DoublePointMsg{
+	msg := &DoublePointMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -222,7 +222,7 @@ func step(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmission, ca
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := StepPositionMsg{
+	msg := &StepPositionMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -303,7 +303,7 @@ func bitString32(c Connect, typeID TypeID, isSequence bool, coa CauseOfTransmiss
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := BitString32Msg{
+	msg := &BitString32Msg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -376,7 +376,7 @@ func measuredValueNormal(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := MeasuredValueNormalMsg{
+	msg := &MeasuredValueNormalMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(attrs)),
 		Items: attrs,
 	}
@@ -472,7 +472,7 @@ func measuredValueScaled(c Connect, typeID TypeID, isSequence bool, coa CauseOfT
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := MeasuredValueScaledMsg{
+	msg := &MeasuredValueScaledMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -549,7 +549,7 @@ func measuredValueFloat(c Connect, typeID TypeID, isSequence bool, coa CauseOfTr
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := MeasuredValueFloatMsg{
+	msg := &MeasuredValueFloatMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -624,7 +624,7 @@ func integratedTotals(c Connect, typeID TypeID, isSequence bool, coa CauseOfTran
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := IntegratedTotalsMsg{
+	msg := &IntegratedTotalsMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}
@@ -707,7 +707,7 @@ func eventOfProtectionEquipment(c Connect, typeID TypeID, coa CauseOfTransmissio
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := EventOfProtectionMsg{
+	msg := &EventOfProtectionMsg{
 		H:     newMessageHeader(c, typeID, coa, ca, false, len(infos)),
 		Items: infos,
 	}
@@ -757,7 +757,7 @@ func packedStartEventsOfProtectionEquipment(c Connect, typeID TypeID, coa CauseO
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := PackedStartEventsMsg{
+	msg := &PackedStartEventsMsg{
 		H:    newMessageHeader(c, typeID, coa, ca, false, 1),
 		Item: info,
 	}
@@ -807,7 +807,7 @@ func packedOutputCircuitInfo(c Connect, typeID TypeID, coa CauseOfTransmission, 
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := PackedOutputCircuitMsg{
+	msg := &PackedOutputCircuitMsg{
 		H:    newMessageHeader(c, typeID, coa, ca, false, 1),
 		Item: info,
 	}
@@ -861,7 +861,7 @@ func PackedSinglePointWithSCD(c Connect, isSequence bool, coa CauseOfTransmissio
 	if err := checkValid(c, M_PS_NA_1, isSequence, len(infos)); err != nil {
 		return err
 	}
-	msg := PackedSinglePointWithSCDMsg{
+	msg := &PackedSinglePointWithSCDMsg{
 		H:     newMessageHeader(c, M_PS_NA_1, coa, ca, isSequence, len(infos)),
 		Items: infos,
 	}

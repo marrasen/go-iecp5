@@ -25,7 +25,7 @@ type mysrv struct{}
 
 func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
 	switch m := msg.(type) {
-	case asdu.InterrogationCmdMsg:
+	case *asdu.InterrogationCmdMsg:
 		log.Println("qoi", m.QOI)
 		if mirror := m.Header().ASDU(); mirror != nil {
 			_ = mirror.SendReplyMirror(c, asdu.ActivationCon)

@@ -431,7 +431,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 	}
 
 	switch m := msg.(type) {
-	case asdu.InterrogationCmdMsg:
+	case *asdu.InterrogationCmdMsg:
 		h := m.Header()
 		if !(h.Identifier.Coa.Cause == asdu.Activation ||
 			h.Identifier.Coa.Cause == asdu.Deactivation) {
@@ -445,7 +445,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.Handle(sf, m)
 
-	case asdu.CounterInterrogationCmdMsg:
+	case *asdu.CounterInterrogationCmdMsg:
 		h := m.Header()
 		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
@@ -458,7 +458,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.Handle(sf, m)
 
-	case asdu.ReadCmdMsg:
+	case *asdu.ReadCmdMsg:
 		h := m.Header()
 		if h.Identifier.Coa.Cause != asdu.Request {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
@@ -468,7 +468,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.Handle(sf, m)
 
-	case asdu.ClockSyncCmdMsg:
+	case *asdu.ClockSyncCmdMsg:
 		h := m.Header()
 		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
@@ -481,7 +481,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.Handle(sf, m)
 
-	case asdu.TestCmdMsg:
+	case *asdu.TestCmdMsg:
 		h := m.Header()
 		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
@@ -494,7 +494,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return asduPack.SendReplyMirror(sf, asdu.ActivationCon)
 
-	case asdu.ResetProcessCmdMsg:
+	case *asdu.ResetProcessCmdMsg:
 		h := m.Header()
 		if h.Identifier.Coa.Cause != asdu.Activation {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
@@ -507,7 +507,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.Handle(sf, m)
 
-	case asdu.DelayAcquireCmdMsg:
+	case *asdu.DelayAcquireCmdMsg:
 		h := m.Header()
 		if !(h.Identifier.Coa.Cause == asdu.Activation ||
 			h.Identifier.Coa.Cause == asdu.Spontaneous) {

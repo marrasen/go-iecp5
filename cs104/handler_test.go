@@ -42,7 +42,7 @@ func TestClientHandlerDispatch(t *testing.T) {
 	if len(h.msgs) != 1 {
 		t.Fatalf("expected 1 message, got %d", len(h.msgs))
 	}
-	if _, ok := h.msgs[0].(asdu.SinglePointMsg); !ok {
+	if _, ok := h.msgs[0].(*asdu.SinglePointMsg); !ok {
 		t.Fatalf("unexpected message type: %T", h.msgs[0])
 	}
 }
@@ -75,7 +75,7 @@ func TestServerHandlerDispatch(t *testing.T) {
 	if len(h.msgs) != 1 {
 		t.Fatalf("expected 1 message, got %d", len(h.msgs))
 	}
-	if _, ok := h.msgs[0].(asdu.InterrogationCmdMsg); !ok {
+	if _, ok := h.msgs[0].(*asdu.InterrogationCmdMsg); !ok {
 		t.Fatalf("unexpected message type: %T", h.msgs[0])
 	}
 }

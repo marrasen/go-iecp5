@@ -60,19 +60,19 @@ func main() {
 
 func (myClient) Handle(c asdu.Connect, msg asdu.Message) error {
 	switch m := msg.(type) {
-	case asdu.InterrogationCmdMsg:
+	case *asdu.InterrogationCmdMsg:
 		fmt.Printf("InterrogationCmd: %+v\n", m)
-	case asdu.CounterInterrogationCmdMsg:
+	case *asdu.CounterInterrogationCmdMsg:
 		fmt.Printf("CounterInterrogationCmd: %+v\n", m)
-	case asdu.ReadCmdMsg:
+	case *asdu.ReadCmdMsg:
 		fmt.Printf("ReadCmd: %+v\n", m)
-	case asdu.TestCmdMsg:
+	case *asdu.TestCmdMsg:
 		fmt.Printf("TestCmd: %+v\n", m)
-	case asdu.ClockSyncCmdMsg:
+	case *asdu.ClockSyncCmdMsg:
 		fmt.Printf("ClockSyncCmd: %+v\n", m)
-	case asdu.ResetProcessCmdMsg:
+	case *asdu.ResetProcessCmdMsg:
 		fmt.Printf("ResetProcessCmd: %+v\n", m)
-	case asdu.DelayAcquireCmdMsg:
+	case *asdu.DelayAcquireCmdMsg:
 		fmt.Printf("DelayAcquireCmd: %+v\n", m)
 	default:
 		fmt.Printf("ASDU: %+v\n", msg)

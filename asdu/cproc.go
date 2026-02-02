@@ -44,7 +44,7 @@ func SingleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := SingleCommandMsg{
+	msg := &SingleCommandMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -87,7 +87,7 @@ func DoubleCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr,
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := DoubleCommandMsg{
+	msg := &DoubleCommandMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -129,7 +129,7 @@ func StepCmd(c Connect, typeID TypeID, coa CauseOfTransmission, ca CommonAddr, c
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := StepCommandMsg{
+	msg := &StepCommandMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -171,7 +171,7 @@ func SetpointCmdNormal(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := SetpointNormalMsg{
+	msg := &SetpointNormalMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -213,7 +213,7 @@ func SetpointCmdScaled(c Connect, typeID TypeID, coa CauseOfTransmission, ca Com
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := SetpointScaledMsg{
+	msg := &SetpointScaledMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -255,7 +255,7 @@ func SetpointCmdFloat(c Connect, typeID TypeID, coa CauseOfTransmission, ca Comm
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := SetpointFloatMsg{
+	msg := &SetpointFloatMsg{
 		H:   newMessageHeader(c, typeID, coa, ca, false, 1),
 		Cmd: cmd,
 	}
@@ -297,7 +297,7 @@ func BitsString32Cmd(c Connect, typeID TypeID, coa CauseOfTransmission, commonAd
 	default:
 		return ErrTypeIDNotMatch
 	}
-	msg := BitsString32CmdMsg{
+	msg := &BitsString32CmdMsg{
 		H:   newMessageHeader(c, typeID, coa, commonAddr, false, 1),
 		Cmd: cmd,
 	}

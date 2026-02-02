@@ -32,6 +32,7 @@ func (h Header) ASDU() *ASDU {
 type Message interface {
 	Header() Header
 	TypeID() TypeID
+	String() string
 }
 
 // UnknownMsg is returned for unsupported or unknown TypeIDs.
@@ -40,10 +41,10 @@ type UnknownMsg struct {
 }
 
 // Header returns the ASDU header.
-func (m UnknownMsg) Header() Header { return m.H }
+func (m *UnknownMsg) Header() Header { return m.H }
 
 // TypeID returns the ASDU TypeID.
-func (m UnknownMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *UnknownMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 // Monitoring direction messages.
 type SinglePointMsg struct {
@@ -51,96 +52,96 @@ type SinglePointMsg struct {
 	Items []SinglePointInfo
 }
 
-func (m SinglePointMsg) Header() Header { return m.H }
-func (m SinglePointMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *SinglePointMsg) Header() Header { return m.H }
+func (m *SinglePointMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type DoublePointMsg struct {
 	H     Header
 	Items []DoublePointInfo
 }
 
-func (m DoublePointMsg) Header() Header { return m.H }
-func (m DoublePointMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *DoublePointMsg) Header() Header { return m.H }
+func (m *DoublePointMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type StepPositionMsg struct {
 	H     Header
 	Items []StepPositionInfo
 }
 
-func (m StepPositionMsg) Header() Header { return m.H }
-func (m StepPositionMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *StepPositionMsg) Header() Header { return m.H }
+func (m *StepPositionMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type BitString32Msg struct {
 	H     Header
 	Items []BitString32Info
 }
 
-func (m BitString32Msg) Header() Header { return m.H }
-func (m BitString32Msg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *BitString32Msg) Header() Header { return m.H }
+func (m *BitString32Msg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type MeasuredValueNormalMsg struct {
 	H     Header
 	Items []MeasuredValueNormalInfo
 }
 
-func (m MeasuredValueNormalMsg) Header() Header { return m.H }
-func (m MeasuredValueNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *MeasuredValueNormalMsg) Header() Header { return m.H }
+func (m *MeasuredValueNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type MeasuredValueScaledMsg struct {
 	H     Header
 	Items []MeasuredValueScaledInfo
 }
 
-func (m MeasuredValueScaledMsg) Header() Header { return m.H }
-func (m MeasuredValueScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *MeasuredValueScaledMsg) Header() Header { return m.H }
+func (m *MeasuredValueScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type MeasuredValueFloatMsg struct {
 	H     Header
 	Items []MeasuredValueFloatInfo
 }
 
-func (m MeasuredValueFloatMsg) Header() Header { return m.H }
-func (m MeasuredValueFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *MeasuredValueFloatMsg) Header() Header { return m.H }
+func (m *MeasuredValueFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type IntegratedTotalsMsg struct {
 	H     Header
 	Items []BinaryCounterReadingInfo
 }
 
-func (m IntegratedTotalsMsg) Header() Header { return m.H }
-func (m IntegratedTotalsMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *IntegratedTotalsMsg) Header() Header { return m.H }
+func (m *IntegratedTotalsMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type EventOfProtectionMsg struct {
 	H     Header
 	Items []EventOfProtectionEquipmentInfo
 }
 
-func (m EventOfProtectionMsg) Header() Header { return m.H }
-func (m EventOfProtectionMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *EventOfProtectionMsg) Header() Header { return m.H }
+func (m *EventOfProtectionMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type PackedStartEventsMsg struct {
 	H    Header
 	Item PackedStartEventsOfProtectionEquipmentInfo
 }
 
-func (m PackedStartEventsMsg) Header() Header { return m.H }
-func (m PackedStartEventsMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *PackedStartEventsMsg) Header() Header { return m.H }
+func (m *PackedStartEventsMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type PackedOutputCircuitMsg struct {
 	H    Header
 	Item PackedOutputCircuitInfoInfo
 }
 
-func (m PackedOutputCircuitMsg) Header() Header { return m.H }
-func (m PackedOutputCircuitMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *PackedOutputCircuitMsg) Header() Header { return m.H }
+func (m *PackedOutputCircuitMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type PackedSinglePointWithSCDMsg struct {
 	H     Header
 	Items []PackedSinglePointWithSCDInfo
 }
 
-func (m PackedSinglePointWithSCDMsg) Header() Header { return m.H }
-func (m PackedSinglePointWithSCDMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *PackedSinglePointWithSCDMsg) Header() Header { return m.H }
+func (m *PackedSinglePointWithSCDMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type EndOfInitMsg struct {
 	H   Header
@@ -148,8 +149,8 @@ type EndOfInitMsg struct {
 	COI CauseOfInitial
 }
 
-func (m EndOfInitMsg) Header() Header { return m.H }
-func (m EndOfInitMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *EndOfInitMsg) Header() Header { return m.H }
+func (m *EndOfInitMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 // Control direction messages.
 type SingleCommandMsg struct {
@@ -157,56 +158,56 @@ type SingleCommandMsg struct {
 	Cmd SingleCommandInfo
 }
 
-func (m SingleCommandMsg) Header() Header { return m.H }
-func (m SingleCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *SingleCommandMsg) Header() Header { return m.H }
+func (m *SingleCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type DoubleCommandMsg struct {
 	H   Header
 	Cmd DoubleCommandInfo
 }
 
-func (m DoubleCommandMsg) Header() Header { return m.H }
-func (m DoubleCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *DoubleCommandMsg) Header() Header { return m.H }
+func (m *DoubleCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type StepCommandMsg struct {
 	H   Header
 	Cmd StepCommandInfo
 }
 
-func (m StepCommandMsg) Header() Header { return m.H }
-func (m StepCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *StepCommandMsg) Header() Header { return m.H }
+func (m *StepCommandMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type SetpointNormalMsg struct {
 	H   Header
 	Cmd SetpointCommandNormalInfo
 }
 
-func (m SetpointNormalMsg) Header() Header { return m.H }
-func (m SetpointNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *SetpointNormalMsg) Header() Header { return m.H }
+func (m *SetpointNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type SetpointScaledMsg struct {
 	H   Header
 	Cmd SetpointCommandScaledInfo
 }
 
-func (m SetpointScaledMsg) Header() Header { return m.H }
-func (m SetpointScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *SetpointScaledMsg) Header() Header { return m.H }
+func (m *SetpointScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type SetpointFloatMsg struct {
 	H   Header
 	Cmd SetpointCommandFloatInfo
 }
 
-func (m SetpointFloatMsg) Header() Header { return m.H }
-func (m SetpointFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *SetpointFloatMsg) Header() Header { return m.H }
+func (m *SetpointFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type BitsString32CmdMsg struct {
 	H   Header
 	Cmd BitsString32CommandInfo
 }
 
-func (m BitsString32CmdMsg) Header() Header { return m.H }
-func (m BitsString32CmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *BitsString32CmdMsg) Header() Header { return m.H }
+func (m *BitsString32CmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 // Parameter messages.
 type ParameterNormalMsg struct {
@@ -214,32 +215,32 @@ type ParameterNormalMsg struct {
 	Param ParameterNormalInfo
 }
 
-func (m ParameterNormalMsg) Header() Header { return m.H }
-func (m ParameterNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ParameterNormalMsg) Header() Header { return m.H }
+func (m *ParameterNormalMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ParameterScaledMsg struct {
 	H     Header
 	Param ParameterScaledInfo
 }
 
-func (m ParameterScaledMsg) Header() Header { return m.H }
-func (m ParameterScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ParameterScaledMsg) Header() Header { return m.H }
+func (m *ParameterScaledMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ParameterFloatMsg struct {
 	H     Header
 	Param ParameterFloatInfo
 }
 
-func (m ParameterFloatMsg) Header() Header { return m.H }
-func (m ParameterFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ParameterFloatMsg) Header() Header { return m.H }
+func (m *ParameterFloatMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ParameterActivationMsg struct {
 	H     Header
 	Param ParameterActivationInfo
 }
 
-func (m ParameterActivationMsg) Header() Header { return m.H }
-func (m ParameterActivationMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ParameterActivationMsg) Header() Header { return m.H }
+func (m *ParameterActivationMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 // System command messages.
 type InterrogationCmdMsg struct {
@@ -248,8 +249,8 @@ type InterrogationCmdMsg struct {
 	QOI QualifierOfInterrogation
 }
 
-func (m InterrogationCmdMsg) Header() Header { return m.H }
-func (m InterrogationCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *InterrogationCmdMsg) Header() Header { return m.H }
+func (m *InterrogationCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type CounterInterrogationCmdMsg struct {
 	H   Header
@@ -257,16 +258,16 @@ type CounterInterrogationCmdMsg struct {
 	QCC QualifierCountCall
 }
 
-func (m CounterInterrogationCmdMsg) Header() Header { return m.H }
-func (m CounterInterrogationCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *CounterInterrogationCmdMsg) Header() Header { return m.H }
+func (m *CounterInterrogationCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ReadCmdMsg struct {
 	H   Header
 	IOA InfoObjAddr
 }
 
-func (m ReadCmdMsg) Header() Header { return m.H }
-func (m ReadCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ReadCmdMsg) Header() Header { return m.H }
+func (m *ReadCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ClockSyncCmdMsg struct {
 	H    Header
@@ -274,8 +275,8 @@ type ClockSyncCmdMsg struct {
 	Time time.Time
 }
 
-func (m ClockSyncCmdMsg) Header() Header { return m.H }
-func (m ClockSyncCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ClockSyncCmdMsg) Header() Header { return m.H }
+func (m *ClockSyncCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type TestCmdMsg struct {
 	H    Header
@@ -283,8 +284,8 @@ type TestCmdMsg struct {
 	Test bool
 }
 
-func (m TestCmdMsg) Header() Header { return m.H }
-func (m TestCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *TestCmdMsg) Header() Header { return m.H }
+func (m *TestCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type ResetProcessCmdMsg struct {
 	H   Header
@@ -292,8 +293,8 @@ type ResetProcessCmdMsg struct {
 	QRP QualifierOfResetProcessCmd
 }
 
-func (m ResetProcessCmdMsg) Header() Header { return m.H }
-func (m ResetProcessCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *ResetProcessCmdMsg) Header() Header { return m.H }
+func (m *ResetProcessCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type DelayAcquireCmdMsg struct {
 	H    Header
@@ -301,8 +302,8 @@ type DelayAcquireCmdMsg struct {
 	Msec uint16
 }
 
-func (m DelayAcquireCmdMsg) Header() Header { return m.H }
-func (m DelayAcquireCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *DelayAcquireCmdMsg) Header() Header { return m.H }
+func (m *DelayAcquireCmdMsg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type TestCmdCP56Msg struct {
 	H    Header
@@ -311,8 +312,8 @@ type TestCmdCP56Msg struct {
 	Time time.Time
 }
 
-func (m TestCmdCP56Msg) Header() Header { return m.H }
-func (m TestCmdCP56Msg) TypeID() TypeID { return m.H.Identifier.Type }
+func (m *TestCmdCP56Msg) Header() Header { return m.H }
+func (m *TestCmdCP56Msg) TypeID() TypeID { return m.H.Identifier.Type }
 
 type decodeCursor struct {
 	params *Params
@@ -509,7 +510,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return SinglePointMsg{H: header, Items: items}, nil
+		return &SinglePointMsg{H: header, Items: items}, nil
 
 	case M_DP_NA_1, M_DP_TA_1, M_DP_TB_1:
 		items := make([]DoublePointInfo, 0, a.Variable.Number)
@@ -549,7 +550,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return DoublePointMsg{H: header, Items: items}, nil
+		return &DoublePointMsg{H: header, Items: items}, nil
 
 	case M_ST_NA_1, M_ST_TA_1, M_ST_TB_1:
 		items := make([]StepPositionInfo, 0, a.Variable.Number)
@@ -593,7 +594,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return StepPositionMsg{H: header, Items: items}, nil
+		return &StepPositionMsg{H: header, Items: items}, nil
 
 	case M_BO_NA_1, M_BO_TA_1, M_BO_TB_1:
 		items := make([]BitString32Info, 0, a.Variable.Number)
@@ -637,7 +638,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return BitString32Msg{H: header, Items: items}, nil
+		return &BitString32Msg{H: header, Items: items}, nil
 
 	case M_ME_NA_1, M_ME_TA_1, M_ME_TD_1, M_ME_ND_1:
 		items := make([]MeasuredValueNormalInfo, 0, a.Variable.Number)
@@ -697,7 +698,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return MeasuredValueNormalMsg{H: header, Items: items}, nil
+		return &MeasuredValueNormalMsg{H: header, Items: items}, nil
 
 	case M_ME_NB_1, M_ME_TB_1, M_ME_TE_1:
 		items := make([]MeasuredValueScaledInfo, 0, a.Variable.Number)
@@ -741,7 +742,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return MeasuredValueScaledMsg{H: header, Items: items}, nil
+		return &MeasuredValueScaledMsg{H: header, Items: items}, nil
 
 	case M_ME_NC_1, M_ME_TC_1, M_ME_TF_1:
 		items := make([]MeasuredValueFloatInfo, 0, a.Variable.Number)
@@ -785,7 +786,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return MeasuredValueFloatMsg{H: header, Items: items}, nil
+		return &MeasuredValueFloatMsg{H: header, Items: items}, nil
 
 	case M_IT_NA_1, M_IT_TA_1, M_IT_TB_1:
 		items := make([]BinaryCounterReadingInfo, 0, a.Variable.Number)
@@ -824,7 +825,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return IntegratedTotalsMsg{H: header, Items: items}, nil
+		return &IntegratedTotalsMsg{H: header, Items: items}, nil
 
 	case M_EP_TA_1, M_EP_TD_1:
 		items := make([]EventOfProtectionEquipmentInfo, 0, a.Variable.Number)
@@ -868,7 +869,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Time:  t,
 			})
 		}
-		return EventOfProtectionMsg{H: header, Items: items}, nil
+		return &EventOfProtectionMsg{H: header, Items: items}, nil
 
 	case M_EP_TB_1, M_EP_TE_1:
 		if a.Variable.IsSequence || a.Variable.Number != 1 {
@@ -909,7 +910,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 			Msec:  msec,
 			Time:  t,
 		}
-		return PackedStartEventsMsg{H: header, Item: item}, nil
+		return &PackedStartEventsMsg{H: header, Item: item}, nil
 
 	case M_EP_TC_1, M_EP_TF_1:
 		if a.Variable.IsSequence || a.Variable.Number != 1 {
@@ -950,7 +951,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 			Msec: msec,
 			Time: t,
 		}
-		return PackedOutputCircuitMsg{H: header, Item: item}, nil
+		return &PackedOutputCircuitMsg{H: header, Item: item}, nil
 
 	case M_PS_NA_1:
 		items := make([]PackedSinglePointWithSCDInfo, 0, a.Variable.Number)
@@ -980,7 +981,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				Qds: QualityDescriptor(qdsRaw),
 			})
 		}
-		return PackedSinglePointWithSCDMsg{H: header, Items: items}, nil
+		return &PackedSinglePointWithSCDMsg{H: header, Items: items}, nil
 
 	case M_EI_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -991,7 +992,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return EndOfInitMsg{H: header, IOA: ioa, COI: ParseCauseOfInitial(b)}, nil
+		return &EndOfInitMsg{H: header, IOA: ioa, COI: ParseCauseOfInitial(b)}, nil
 
 	case C_SC_NA_1, C_SC_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1013,7 +1014,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return SingleCommandMsg{H: header, Cmd: cmd}, nil
+		return &SingleCommandMsg{H: header, Cmd: cmd}, nil
 
 	case C_DC_NA_1, C_DC_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1035,7 +1036,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return DoubleCommandMsg{H: header, Cmd: cmd}, nil
+		return &DoubleCommandMsg{H: header, Cmd: cmd}, nil
 
 	case C_RC_NA_1, C_RC_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1057,7 +1058,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return StepCommandMsg{H: header, Cmd: cmd}, nil
+		return &StepCommandMsg{H: header, Cmd: cmd}, nil
 
 	case C_SE_NA_1, C_SE_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1083,7 +1084,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return SetpointNormalMsg{H: header, Cmd: cmd}, nil
+		return &SetpointNormalMsg{H: header, Cmd: cmd}, nil
 
 	case C_SE_NB_1, C_SE_TB_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1109,7 +1110,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return SetpointScaledMsg{H: header, Cmd: cmd}, nil
+		return &SetpointScaledMsg{H: header, Cmd: cmd}, nil
 
 	case C_SE_NC_1, C_SE_TC_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1135,7 +1136,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return SetpointFloatMsg{H: header, Cmd: cmd}, nil
+		return &SetpointFloatMsg{H: header, Cmd: cmd}, nil
 
 	case C_BO_NA_1, C_BO_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1156,7 +1157,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 				return nil, err
 			}
 		}
-		return BitsString32CmdMsg{H: header, Cmd: cmd}, nil
+		return &BitsString32CmdMsg{H: header, Cmd: cmd}, nil
 
 	case C_IC_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1167,7 +1168,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return InterrogationCmdMsg{H: header, IOA: ioa, QOI: QualifierOfInterrogation(b)}, nil
+		return &InterrogationCmdMsg{H: header, IOA: ioa, QOI: QualifierOfInterrogation(b)}, nil
 
 	case C_CI_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1178,14 +1179,14 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return CounterInterrogationCmdMsg{H: header, IOA: ioa, QCC: ParseQualifierCountCall(b)}, nil
+		return &CounterInterrogationCmdMsg{H: header, IOA: ioa, QCC: ParseQualifierCountCall(b)}, nil
 
 	case C_RD_NA_1:
 		ioa, err := cur.readInfoObjAddr()
 		if err != nil {
 			return nil, err
 		}
-		return ReadCmdMsg{H: header, IOA: ioa}, nil
+		return &ReadCmdMsg{H: header, IOA: ioa}, nil
 
 	case C_CS_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1196,7 +1197,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ClockSyncCmdMsg{H: header, IOA: ioa, Time: t}, nil
+		return &ClockSyncCmdMsg{H: header, IOA: ioa, Time: t}, nil
 
 	case C_TS_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1207,7 +1208,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return TestCmdMsg{H: header, IOA: ioa, Test: v == FBPTestWord}, nil
+		return &TestCmdMsg{H: header, IOA: ioa, Test: v == FBPTestWord}, nil
 
 	case C_RP_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1218,7 +1219,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ResetProcessCmdMsg{H: header, IOA: ioa, QRP: QualifierOfResetProcessCmd(b)}, nil
+		return &ResetProcessCmdMsg{H: header, IOA: ioa, QRP: QualifierOfResetProcessCmd(b)}, nil
 
 	case C_CD_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1229,7 +1230,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return DelayAcquireCmdMsg{H: header, IOA: ioa, Msec: msec}, nil
+		return &DelayAcquireCmdMsg{H: header, IOA: ioa, Msec: msec}, nil
 
 	case C_TS_TA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1244,7 +1245,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return TestCmdCP56Msg{H: header, IOA: ioa, Test: v == FBPTestWord, Time: t}, nil
+		return &TestCmdCP56Msg{H: header, IOA: ioa, Test: v == FBPTestWord, Time: t}, nil
 
 	case P_ME_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1259,7 +1260,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ParameterNormalMsg{H: header, Param: ParameterNormalInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
+		return &ParameterNormalMsg{H: header, Param: ParameterNormalInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
 
 	case P_ME_NB_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1274,7 +1275,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ParameterScaledMsg{H: header, Param: ParameterScaledInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
+		return &ParameterScaledMsg{H: header, Param: ParameterScaledInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
 
 	case P_ME_NC_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1289,7 +1290,7 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ParameterFloatMsg{H: header, Param: ParameterFloatInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
+		return &ParameterFloatMsg{H: header, Param: ParameterFloatInfo{Ioa: ioa, Value: val, Qpm: ParseQualifierOfParamMV(qpmRaw)}}, nil
 
 	case P_AC_NA_1:
 		ioa, err := cur.readInfoObjAddr()
@@ -1300,8 +1301,8 @@ func ParseASDU(a *ASDU) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ParameterActivationMsg{H: header, Param: ParameterActivationInfo{Ioa: ioa, Qpa: QualifierOfParameterAct(qpaRaw)}}, nil
+		return &ParameterActivationMsg{H: header, Param: ParameterActivationInfo{Ioa: ioa, Qpa: QualifierOfParameterAct(qpaRaw)}}, nil
 	}
 
-	return UnknownMsg{H: header}, nil
+	return &UnknownMsg{H: header}, nil
 }

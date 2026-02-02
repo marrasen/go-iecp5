@@ -16,7 +16,7 @@ func EndOfInitialization(c Connect, coa CauseOfTransmission, ca CommonAddr, ioa 
 	}
 
 	coa.Cause = Initialized
-	msg := EndOfInitMsg{
+	msg := &EndOfInitMsg{
 		H:   newMessageHeader(c, M_EI_NA_1, coa, ca, false, 1),
 		IOA: ioa,
 		COI: coi,

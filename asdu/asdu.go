@@ -203,275 +203,8 @@ func (sf *ASDU) String() string {
 		return b.String()
 	}
 
-	switch m := msg.(type) {
-	case SinglePointMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=%t", it.Ioa, it.Value)
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case DoublePointMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=%d", it.Ioa, it.Value)
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case StepPositionMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=val(%d)", it.Ioa, it.Value.Val)
-			if it.Value.HasTransient {
-				b.WriteString(" transient")
-			}
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case BitString32Msg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=0x%08x", it.Ioa, it.Value)
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case MeasuredValueNormalMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=%.6f", it.Ioa, it.Value.Float64())
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case MeasuredValueScaledMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=%d", it.Ioa, it.Value)
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case MeasuredValueFloatMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=%g", it.Ioa, it.Value)
-			if it.Qds != QDSGood {
-				_, _ = fmt.Fprintf(&b, " QDS=0x%02x", byte(it.Qds))
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case IntegratedTotalsMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			v := it.Value
-			_, _ = fmt.Fprintf(&b, "%d=count(%d) seq=%d", it.Ioa, v.CounterReading, v.SeqNumber)
-			if v.HasCarry {
-				b.WriteString(" carry")
-			}
-			if v.IsAdjusted {
-				b.WriteString(" adjusted")
-			}
-			if v.IsInvalid {
-				b.WriteString(" invalid")
-			}
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case EventOfProtectionMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=event(%d) QDP=0x%02x msec=%d", it.Ioa, it.Event, byte(it.Qdp), it.Msec)
-			if !it.Time.IsZero() {
-				_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-			}
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case PackedStartEventsMsg:
-		it := m.Item
-		_, _ = fmt.Fprintf(&b, " IOA=%d start=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Event), byte(it.Qdp), it.Msec)
-		if !it.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-		}
-	case PackedOutputCircuitMsg:
-		it := m.Item
-		_, _ = fmt.Fprintf(&b, " IOA=%d oci=0x%02x QDP=0x%02x msec=%d", it.Ioa, byte(it.Oci), byte(it.Qdp), it.Msec)
-		if !it.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", it.Time.Format(time.RFC3339Nano))
-		}
-	case PackedSinglePointWithSCDMsg:
-		_, _ = fmt.Fprintf(&b, " items=%d", len(m.Items))
-		for i, it := range m.Items {
-			if i == 0 {
-				b.WriteString(" [")
-			} else {
-				b.WriteString(", ")
-			}
-			_, _ = fmt.Fprintf(&b, "%d=SCD(0x%08x) QDS=0x%02x", it.Ioa, uint32(it.Scd), byte(it.Qds))
-		}
-		if len(m.Items) > 0 {
-			b.WriteByte(']')
-		}
-	case EndOfInitMsg:
-		_, _ = fmt.Fprintf(&b, " IOA=%d cause=%d localChange=%t", m.IOA, m.COI.Cause, m.COI.IsLocalChange)
-	case SingleCommandMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%t QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case DoubleCommandMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case StepCommandMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOC=%s", cmd.Ioa, cmd.Value, cmd.Qoc)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case SetpointNormalMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QOS=%s", cmd.Ioa, cmd.Value.Float64(), cmd.Qos)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case SetpointScaledMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case SetpointFloatMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QOS=%s", cmd.Ioa, cmd.Value, cmd.Qos)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case BitsString32CmdMsg:
-		cmd := m.Cmd
-		_, _ = fmt.Fprintf(&b, " IOA=%d bits=0x%08x", cmd.Ioa, cmd.Value)
-		if !cmd.Time.IsZero() {
-			_, _ = fmt.Fprintf(&b, " @%s", cmd.Time.Format(time.RFC3339Nano))
-		}
-	case ParameterNormalMsg:
-		p := m.Param
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%.6f QPM=0x%02x", p.Ioa, p.Value.Float64(), byte(p.Qpm.Value()))
-	case ParameterScaledMsg:
-		p := m.Param
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%d QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
-	case ParameterFloatMsg:
-		p := m.Param
-		_, _ = fmt.Fprintf(&b, " IOA=%d val=%g QPM=0x%02x", p.Ioa, p.Value, byte(p.Qpm.Value()))
-	case ParameterActivationMsg:
-		p := m.Param
-		_, _ = fmt.Fprintf(&b, " IOA=%d QPA=%d", p.Ioa, p.Qpa)
-	case InterrogationCmdMsg:
-		_, _ = fmt.Fprintf(&b, " IOA=%d QOI=%d", m.IOA, byte(m.QOI))
-	default:
-		n := int(sf.Variable.Number)
-		if n == 0 {
-			n = 1
-		}
-		_, _ = fmt.Fprintf(&b, " items=%d payload=%dB", n, len(sf.infoObj))
-	}
+	b.WriteByte(' ')
+	b.WriteString(msg.String())
 
 	return b.String()
 }
@@ -678,7 +411,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 		value = map[string]interface{}{"items": int(sf.Variable.Number), "payload": len(sf.infoObj)}
 	} else {
 		switch m := msg.(type) {
-		case SinglePointMsg:
+		case *SinglePointMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
@@ -688,7 +421,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case DoublePointMsg:
+		case *DoublePointMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": byte(it.Value), "qds": byte(it.Qds)}
@@ -698,7 +431,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case StepPositionMsg:
+		case *StepPositionMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{
@@ -712,7 +445,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case BitString32Msg:
+		case *BitString32Msg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
@@ -722,7 +455,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case MeasuredValueNormalMsg:
+		case *MeasuredValueNormalMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value.Float64()}
@@ -735,7 +468,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case MeasuredValueScaledMsg:
+		case *MeasuredValueScaledMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
@@ -745,7 +478,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case MeasuredValueFloatMsg:
+		case *MeasuredValueFloatMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "value": it.Value, "qds": byte(it.Qds)}
@@ -755,7 +488,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case IntegratedTotalsMsg:
+		case *IntegratedTotalsMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				v := it.Value
@@ -775,7 +508,7 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case EventOfProtectionMsg:
+		case *EventOfProtectionMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec}
@@ -785,43 +518,43 @@ func (sf *ASDU) MarshalJSON() ([]byte, error) {
 				arr = append(arr, item)
 			}
 			value = arr
-		case PackedStartEventsMsg:
+		case *PackedStartEventsMsg:
 			it := m.Item
 			value = map[string]interface{}{"ioa": uint(it.Ioa), "event": byte(it.Event), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
-		case PackedOutputCircuitMsg:
+		case *PackedOutputCircuitMsg:
 			it := m.Item
 			value = map[string]interface{}{"ioa": uint(it.Ioa), "oci": byte(it.Oci), "qdp": byte(it.Qdp), "msec": it.Msec, "time": ts(it.Time)}
-		case PackedSinglePointWithSCDMsg:
+		case *PackedSinglePointWithSCDMsg:
 			arr := []map[string]interface{}{}
 			for _, it := range m.Items {
 				item := map[string]interface{}{"ioa": uint(it.Ioa), "scd": uint32(it.Scd), "qds": byte(it.Qds)}
 				arr = append(arr, item)
 			}
 			value = arr
-		case EndOfInitMsg:
+		case *EndOfInitMsg:
 			value = map[string]interface{}{"ioa": uint(m.IOA), "cause": byte(m.COI.Cause), "localChange": m.COI.IsLocalChange}
-		case SingleCommandMsg:
+		case *SingleCommandMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-		case DoubleCommandMsg:
+		case *DoubleCommandMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-		case StepCommandMsg:
+		case *StepCommandMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": byte(cmd.Value), "qoc": cmd.Qoc.Value(), "time": ts(cmd.Time)}
-		case SetpointNormalMsg:
+		case *SetpointNormalMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value.Float64(), "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-		case SetpointScaledMsg:
+		case *SetpointScaledMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-		case SetpointFloatMsg:
+		case *SetpointFloatMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "qos": cmd.Qos.Value(), "time": ts(cmd.Time)}
-		case BitsString32CmdMsg:
+		case *BitsString32CmdMsg:
 			cmd := m.Cmd
 			value = map[string]interface{}{"ioa": uint(cmd.Ioa), "value": cmd.Value, "time": ts(cmd.Time)}
-		case InterrogationCmdMsg:
+		case *InterrogationCmdMsg:
 			value = map[string]interface{}{"ioa": uint(m.IOA), "qoi": byte(m.QOI)}
 		default:
 			value = map[string]interface{}{"items": int(sf.Variable.Number), "payload": len(sf.infoObj)}

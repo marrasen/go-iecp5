@@ -35,7 +35,7 @@ func ParameterNormal(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := ParameterNormalMsg{
+	msg := &ParameterNormalMsg{
 		H:     newMessageHeader(c, P_ME_NA_1, coa, ca, false, 1),
 		Param: p,
 	}
@@ -72,7 +72,7 @@ func ParameterScaled(c Connect, coa CauseOfTransmission, ca CommonAddr, p Parame
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := ParameterScaledMsg{
+	msg := &ParameterScaledMsg{
 		H:     newMessageHeader(c, P_ME_NB_1, coa, ca, false, 1),
 		Param: p,
 	}
@@ -109,7 +109,7 @@ func ParameterFloat(c Connect, coa CauseOfTransmission, ca CommonAddr, p Paramet
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := ParameterFloatMsg{
+	msg := &ParameterFloatMsg{
 		H:     newMessageHeader(c, P_ME_NC_1, coa, ca, false, 1),
 		Param: p,
 	}
@@ -142,7 +142,7 @@ func ParameterActivation(c Connect, coa CauseOfTransmission, ca CommonAddr, p Pa
 	if err := c.Params().Valid(); err != nil {
 		return err
 	}
-	msg := ParameterActivationMsg{
+	msg := &ParameterActivationMsg{
 		H:     newMessageHeader(c, P_AC_NA_1, coa, ca, false, 1),
 		Param: p,
 	}

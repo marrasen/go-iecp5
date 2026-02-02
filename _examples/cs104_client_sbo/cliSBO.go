@@ -132,7 +132,7 @@ func main() {
 
 func (s *sboClient) Handle(c asdu.Connect, msg asdu.Message) error {
 	switch m := msg.(type) {
-	case asdu.SingleCommandMsg:
+	case *asdu.SingleCommandMsg:
 		cause := m.Header().Identifier.Coa.Cause
 		cmd := m.Cmd
 		if cmd.Qoc.InSelect && cause == asdu.ActivationCon {

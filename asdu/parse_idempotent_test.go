@@ -60,8 +60,8 @@ func TestParseASDU_IdempotentSinglePoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(SinglePointMsg)
-	m2 := msg2.(SinglePointMsg)
+	m1 := msg1.(*SinglePointMsg)
+	m2 := msg2.(*SinglePointMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call: %#v vs %#v", m1, m2)
 	}
@@ -86,8 +86,8 @@ func TestParseASDU_IdempotentMeasuredValueScaled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(MeasuredValueScaledMsg)
-	m2 := msg2.(MeasuredValueScaledMsg)
+	m1 := msg1.(*MeasuredValueScaledMsg)
+	m2 := msg2.(*MeasuredValueScaledMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -113,8 +113,8 @@ func TestParseASDU_IdempotentBitString32(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(BitString32Msg)
-	m2 := msg2.(BitString32Msg)
+	m1 := msg1.(*BitString32Msg)
+	m2 := msg2.(*BitString32Msg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -143,8 +143,8 @@ func TestParseASDU_IdempotentIntegratedTotals(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(IntegratedTotalsMsg)
-	m2 := msg2.(IntegratedTotalsMsg)
+	m1 := msg1.(*IntegratedTotalsMsg)
+	m2 := msg2.(*IntegratedTotalsMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -170,8 +170,8 @@ func TestParseASDU_IdempotentEventOfProtection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(EventOfProtectionMsg)
-	m2 := msg2.(EventOfProtectionMsg)
+	m1 := msg1.(*EventOfProtectionMsg)
+	m2 := msg2.(*EventOfProtectionMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -197,8 +197,8 @@ func TestParseASDU_IdempotentPackedStartEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(PackedStartEventsMsg)
-	m2 := msg2.(PackedStartEventsMsg)
+	m1 := msg1.(*PackedStartEventsMsg)
+	m2 := msg2.(*PackedStartEventsMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -224,8 +224,8 @@ func TestParseASDU_IdempotentPackedOutputCircuit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(PackedOutputCircuitMsg)
-	m2 := msg2.(PackedOutputCircuitMsg)
+	m1 := msg1.(*PackedOutputCircuitMsg)
+	m2 := msg2.(*PackedOutputCircuitMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}
@@ -250,8 +250,8 @@ func TestParseASDU_IdempotentSystem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseASDU failed: %v", err)
 	}
-	m1 := msg1.(InterrogationCmdMsg)
-	m2 := msg2.(InterrogationCmdMsg)
+	m1 := msg1.(*InterrogationCmdMsg)
+	m2 := msg2.(*InterrogationCmdMsg)
 	if !reflect.DeepEqual(m1, m2) {
 		t.Fatalf("values differ on second call")
 	}

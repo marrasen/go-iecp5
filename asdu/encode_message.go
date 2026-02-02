@@ -18,75 +18,75 @@ func EncodeMessage(msg Message) (*ASDU, error) {
 	}
 
 	switch m := msg.(type) {
-	case UnknownMsg:
+	case *UnknownMsg:
 		if len(h.RawInfoObj) == 0 {
 			return nil, ErrTypeIDNotMatch
 		}
 		return h.ASDU(), nil
-	case SinglePointMsg:
-		return encodeSinglePoint(h, m)
-	case DoublePointMsg:
-		return encodeDoublePoint(h, m)
-	case StepPositionMsg:
-		return encodeStepPosition(h, m)
-	case BitString32Msg:
-		return encodeBitString32(h, m)
-	case MeasuredValueNormalMsg:
-		return encodeMeasuredValueNormal(h, m)
-	case MeasuredValueScaledMsg:
-		return encodeMeasuredValueScaled(h, m)
-	case MeasuredValueFloatMsg:
-		return encodeMeasuredValueFloat(h, m)
-	case IntegratedTotalsMsg:
-		return encodeIntegratedTotals(h, m)
-	case EventOfProtectionMsg:
-		return encodeEventOfProtection(h, m)
-	case PackedStartEventsMsg:
-		return encodePackedStartEvents(h, m)
-	case PackedOutputCircuitMsg:
-		return encodePackedOutputCircuit(h, m)
-	case PackedSinglePointWithSCDMsg:
-		return encodePackedSinglePointWithSCD(h, m)
-	case EndOfInitMsg:
-		return encodeEndOfInit(h, m)
-	case SingleCommandMsg:
-		return encodeSingleCommand(h, m)
-	case DoubleCommandMsg:
-		return encodeDoubleCommand(h, m)
-	case StepCommandMsg:
-		return encodeStepCommand(h, m)
-	case SetpointNormalMsg:
-		return encodeSetpointNormal(h, m)
-	case SetpointScaledMsg:
-		return encodeSetpointScaled(h, m)
-	case SetpointFloatMsg:
-		return encodeSetpointFloat(h, m)
-	case BitsString32CmdMsg:
-		return encodeBitsString32Cmd(h, m)
-	case ParameterNormalMsg:
-		return encodeParameterNormal(h, m)
-	case ParameterScaledMsg:
-		return encodeParameterScaled(h, m)
-	case ParameterFloatMsg:
-		return encodeParameterFloat(h, m)
-	case ParameterActivationMsg:
-		return encodeParameterActivation(h, m)
-	case InterrogationCmdMsg:
-		return encodeInterrogationCmd(h, m)
-	case CounterInterrogationCmdMsg:
-		return encodeCounterInterrogationCmd(h, m)
-	case ReadCmdMsg:
-		return encodeReadCmd(h, m)
-	case ClockSyncCmdMsg:
-		return encodeClockSyncCmd(h, m)
-	case TestCmdMsg:
-		return encodeTestCmd(h, m)
-	case ResetProcessCmdMsg:
-		return encodeResetProcessCmd(h, m)
-	case DelayAcquireCmdMsg:
-		return encodeDelayAcquireCmd(h, m)
-	case TestCmdCP56Msg:
-		return encodeTestCmdCP56(h, m)
+	case *SinglePointMsg:
+		return encodeSinglePoint(h, *m)
+	case *DoublePointMsg:
+		return encodeDoublePoint(h, *m)
+	case *StepPositionMsg:
+		return encodeStepPosition(h, *m)
+	case *BitString32Msg:
+		return encodeBitString32(h, *m)
+	case *MeasuredValueNormalMsg:
+		return encodeMeasuredValueNormal(h, *m)
+	case *MeasuredValueScaledMsg:
+		return encodeMeasuredValueScaled(h, *m)
+	case *MeasuredValueFloatMsg:
+		return encodeMeasuredValueFloat(h, *m)
+	case *IntegratedTotalsMsg:
+		return encodeIntegratedTotals(h, *m)
+	case *EventOfProtectionMsg:
+		return encodeEventOfProtection(h, *m)
+	case *PackedStartEventsMsg:
+		return encodePackedStartEvents(h, *m)
+	case *PackedOutputCircuitMsg:
+		return encodePackedOutputCircuit(h, *m)
+	case *PackedSinglePointWithSCDMsg:
+		return encodePackedSinglePointWithSCD(h, *m)
+	case *EndOfInitMsg:
+		return encodeEndOfInit(h, *m)
+	case *SingleCommandMsg:
+		return encodeSingleCommand(h, *m)
+	case *DoubleCommandMsg:
+		return encodeDoubleCommand(h, *m)
+	case *StepCommandMsg:
+		return encodeStepCommand(h, *m)
+	case *SetpointNormalMsg:
+		return encodeSetpointNormal(h, *m)
+	case *SetpointScaledMsg:
+		return encodeSetpointScaled(h, *m)
+	case *SetpointFloatMsg:
+		return encodeSetpointFloat(h, *m)
+	case *BitsString32CmdMsg:
+		return encodeBitsString32Cmd(h, *m)
+	case *ParameterNormalMsg:
+		return encodeParameterNormal(h, *m)
+	case *ParameterScaledMsg:
+		return encodeParameterScaled(h, *m)
+	case *ParameterFloatMsg:
+		return encodeParameterFloat(h, *m)
+	case *ParameterActivationMsg:
+		return encodeParameterActivation(h, *m)
+	case *InterrogationCmdMsg:
+		return encodeInterrogationCmd(h, *m)
+	case *CounterInterrogationCmdMsg:
+		return encodeCounterInterrogationCmd(h, *m)
+	case *ReadCmdMsg:
+		return encodeReadCmd(h, *m)
+	case *ClockSyncCmdMsg:
+		return encodeClockSyncCmd(h, *m)
+	case *TestCmdMsg:
+		return encodeTestCmd(h, *m)
+	case *ResetProcessCmdMsg:
+		return encodeResetProcessCmd(h, *m)
+	case *DelayAcquireCmdMsg:
+		return encodeDelayAcquireCmd(h, *m)
+	case *TestCmdCP56Msg:
+		return encodeTestCmdCP56(h, *m)
 	default:
 		return nil, errEncodeUnsupported
 	}
