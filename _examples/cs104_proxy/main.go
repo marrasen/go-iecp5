@@ -15,54 +15,46 @@ import (
 )
 
 type proxy struct {
-	mu         sync.RWMutex
-	upstream   map[asdu.CommonAddr]*cs104.Client
-	downstream map[asdu.CommonAddr]asdu.Connect
-	casByConn  map[asdu.Connect]map[asdu.CommonAddr]struct{}
-	logger     *log.Logger
+	mu       sync.RWMutex
+	outbound map[asdu.CommonAddr]*cs104.Client
+	inbound  map[asdu.Connect]struct{}
+	logger   *log.Logger
 }
 
 func newProxy(logger *log.Logger) *proxy {
 	return &proxy{
-		upstream:   make(map[asdu.CommonAddr]*cs104.Client),
-		downstream: make(map[asdu.CommonAddr]asdu.Connect),
-		casByConn:  make(map[asdu.Connect]map[asdu.CommonAddr]struct{}),
-		logger:     logger,
+		outbound: make(map[asdu.CommonAddr]*cs104.Client),
+		inbound:  make(map[asdu.Connect]struct{}),
+		logger:   logger,
 	}
 }
 
-func (p *proxy) setDownstream(c asdu.Connect, ca asdu.CommonAddr) {
+func (p *proxy) addInbound(c asdu.Connect) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.downstream[ca] = c
-	if _, ok := p.casByConn[c]; !ok {
-		p.casByConn[c] = make(map[asdu.CommonAddr]struct{})
-	}
-	p.casByConn[c][ca] = struct{}{}
+	p.inbound[c] = struct{}{}
 }
 
-func (p *proxy) dropDownstreamConn(c asdu.Connect) {
+func (p *proxy) dropInbound(c asdu.Connect) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	cas := p.casByConn[c]
-	for ca := range cas {
-		if cur, ok := p.downstream[ca]; ok && cur == c {
-			delete(p.downstream, ca)
-		}
+	delete(p.inbound, c)
+}
+
+func (p *proxy) getAllInbound() []asdu.Connect {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	conns := make([]asdu.Connect, 0, len(p.inbound))
+	for c := range p.inbound {
+		conns = append(conns, c)
 	}
-	delete(p.casByConn, c)
+	return conns
 }
 
-func (p *proxy) getDownstream(ca asdu.CommonAddr) asdu.Connect {
+func (p *proxy) getOutbound(ca asdu.CommonAddr) *cs104.Client {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	return p.downstream[ca]
-}
-
-func (p *proxy) getUpstream(ca asdu.CommonAddr) *cs104.Client {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	return p.upstream[ca]
+	return p.outbound[ca]
 }
 
 type inboundHandler struct {
@@ -82,12 +74,12 @@ func (h inboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
 	}
 
 	if ca == asdu.GlobalCommonAddr {
-		h.broadcast(c, header)
+		h.broadcast(header)
 		return
 	}
 
-	up := h.proxy.getUpstream(ca)
-	if up == nil {
+	out := h.proxy.getOutbound(ca)
+	if out == nil {
 		if mirror := header.ASDU(); mirror != nil {
 			if err := mirror.SendReplyMirror(c, asdu.UnknownCA); err != nil {
 				h.proxy.logger.Printf("failed to send reply mirror: %v", err)
@@ -95,65 +87,64 @@ func (h inboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
 		}
 		return
 	}
-	h.proxy.setDownstream(c, ca)
-	out := header.ASDU()
-	if out == nil {
+	outMsg := header.ASDU()
+	if outMsg == nil {
 		return
 	}
-	out.Identifier.CommonAddr = ca
-	if err := up.Send(out); err != nil {
-		h.proxy.logger.Printf("failed to send to upstream: %v", err)
+	outMsg.Identifier.CommonAddr = ca
+	if err := out.Send(outMsg); err != nil {
+		h.proxy.logger.Printf("failed to send to outbound: %v", err)
 	}
 }
 
-func (h inboundHandler) broadcast(c asdu.Connect, header asdu.Header) error {
-	out := header.ASDU()
-	if out == nil {
+func (h inboundHandler) broadcast(header asdu.Header) error {
+	outMsg := header.ASDU()
+	if outMsg == nil {
 		return errors.New("failed to build outbound asdu")
 	}
 	h.proxy.mu.RLock()
-	upstreams := make(map[asdu.CommonAddr]*cs104.Client, len(h.proxy.upstream))
-	for ca, up := range h.proxy.upstream {
-		upstreams[ca] = up
+	outbounds := make(map[asdu.CommonAddr]*cs104.Client, len(h.proxy.outbound))
+	for ca, out := range h.proxy.outbound {
+		outbounds[ca] = out
 	}
 	h.proxy.mu.RUnlock()
 
 	var firstErr error
-	for ca, up := range upstreams {
-		h.proxy.setDownstream(c, ca)
-		cloned := out.Clone()
+	for ca, out := range outbounds {
+		cloned := outMsg.Clone()
 		cloned.Identifier.CommonAddr = ca
-		if err := up.Send(cloned); err != nil && firstErr == nil {
+		if err := out.Send(cloned); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
 	return firstErr
 }
 
-type upstreamHandler struct {
+type outboundHandler struct {
 	logger *log.Logger
 	proxy  *proxy
 	ca     asdu.CommonAddr
 }
 
-func (h upstreamHandler) Handle(c asdu.Connect, msg asdu.Message) {
+func (h outboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
 	h.logger.Printf("Received msg on ca %d. Message: %s", h.ca, msg.Header().ASDU().String())
-	down := h.proxy.getDownstream(h.ca)
-	if down == nil {
-		h.logger.Printf("Failed to find downstream server for address %d", h.ca)
+	inbounds := h.proxy.getAllInbound()
+	if len(inbounds) == 0 {
+		h.logger.Print("No inbound connections available")
 		return
 	}
-	out := msg.Header().ASDU()
-	if out == nil {
-		h.logger.Printf("Received msg on ca %d: failed to build outbound asdu, dropping message", h.ca)
+	inMsg := msg.Header().ASDU()
+	if inMsg == nil {
+		h.logger.Printf("Received msg on ca %d: failed to build inbound asdu, dropping message", h.ca)
 		return
 	}
-	out.Identifier.CommonAddr = h.ca
-	if err := down.Send(out); err != nil {
-		h.logger.Printf("Failed to send to downstream: %v", err)
-		return
+	inMsg.Identifier.CommonAddr = h.ca
+	for _, in := range inbounds {
+		if err := in.Send(inMsg); err != nil {
+			h.logger.Printf("Failed to send to inbound: %v", err)
+		}
 	}
-	h.logger.Printf("Sent msg on ca %d to downstream server", h.ca)
+	h.logger.Printf("Sent msg on ca %d to %d inbound connection(s)", h.ca, len(inbounds))
 }
 
 func main() {
@@ -179,32 +170,32 @@ func main() {
 		if err := opt.SetRemoteServer(remote); err != nil {
 			log.Fatalf("invalid remote %q: %v", remote, err)
 		}
-		handler := upstreamHandler{proxy: p, ca: ca, logger: logger}
+		handler := outboundHandler{proxy: p, ca: ca, logger: logger}
 		client := cs104.NewClient(handler, opt)
 		client.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
 			switch s {
 			case cs104.ConnStateNew:
-				logger.Printf("upstream %s connected, sending StartDT_ACT...", remote)
+				logger.Printf("outbound %s connected, sending StartDT_ACT...", remote)
 				c.(*cs104.Client).SendStartDt()
 			case cs104.ConnStateClosed:
-				logger.Printf("upstream %s disconnected", remote)
+				logger.Printf("outbound %s disconnected", remote)
 			case cs104.ConnStateActive:
-				logger.Printf("upstream %s connected", remote)
+				logger.Printf("outbound %s connected", remote)
 			case cs104.ConnStateIdle:
-				logger.Printf("upstream %s idle", remote)
+				logger.Printf("outbound %s idle", remote)
 			}
 		})
-		p.upstream[ca] = client
-		logger.Printf("mapped upstream %s -> CA=%d", remote, ca)
+		p.outbound[ca] = client
+		logger.Printf("mapped outbound %s -> CA=%d", remote, ca)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	for ca, client := range p.upstream {
+	for ca, client := range p.outbound {
 		go func(ca asdu.CommonAddr, cli *cs104.Client) {
 			if err := cli.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
-				logger.Printf("upstream CA=%d stopped: %v", ca, err)
+				logger.Printf("outbound CA=%d stopped: %v", ca, err)
 			}
 		}(ca, client)
 	}
@@ -214,14 +205,15 @@ func main() {
 		remoteAddr := c.UnderlyingConn().RemoteAddr().String()
 		switch s {
 		case cs104.ConnStateNew:
-			logger.Printf("New incoming connection: %s", remoteAddr)
+			logger.Printf("New inbound connection: %s", remoteAddr)
 		case cs104.ConnStateActive:
-			logger.Printf("Incoming connection active: %s", remoteAddr)
+			logger.Printf("Inbound connection active: %s", remoteAddr)
+			p.addInbound(c)
 		case cs104.ConnStateClosed:
-			logger.Printf("Incoming connection closed, dropping downstream count: %s", remoteAddr)
-			p.dropDownstreamConn(c)
+			logger.Printf("Inbound connection closed: %s", remoteAddr)
+			p.dropInbound(c)
 		case cs104.ConnStateIdle:
-			logger.Printf("Incoming connection idle: %s", remoteAddr)
+			logger.Printf("Inbound connection idle: %s", remoteAddr)
 		}
 	}
 
