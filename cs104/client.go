@@ -26,7 +26,7 @@ const (
 type Client struct {
 	option  ClientOption
 	conn    net.Conn
-	handler Handler
+	handler asdu.Handler
 
 	// channel
 	rcvASDU  chan []byte // for received asdu
@@ -63,7 +63,7 @@ type Client struct {
 }
 
 // NewClient returns an IEC104 master,default config and default asdu.ParamsWide params
-func NewClient(handler Handler, o *ClientOption) *Client {
+func NewClient(handler asdu.Handler, o *ClientOption) *Client {
 	return &Client{
 		option:   *o,
 		handler:  handler,
@@ -482,7 +482,8 @@ func (sf *Client) clientHandler(asduPack *asdu.ASDU) error {
 	if err != nil {
 		return err
 	}
-	return sf.handler.Handle(sf, msg)
+	sf.handler.Handle(sf, msg)
+	return nil
 }
 
 // Params returns params of client

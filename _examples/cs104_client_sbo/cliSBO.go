@@ -130,7 +130,7 @@ func main() {
 // same type (e.g., C_SC_NA_1) and causes like Activation confirmation/termination.
 // We parse the ASDU and signal our waiting goroutines.
 
-func (s *sboClient) Handle(c asdu.Connect, msg asdu.Message) error {
+func (s *sboClient) Handle(c asdu.Connect, msg asdu.Message) {
 	switch m := msg.(type) {
 	case *asdu.SingleCommandMsg:
 		cause := m.Header().Identifier.Coa.Cause
@@ -150,5 +150,4 @@ func (s *sboClient) Handle(c asdu.Connect, msg asdu.Message) error {
 			fmt.Printf("EXECUTE confirmation received: IOA=%d Value=%v\n", cmd.Ioa, cmd.Value)
 		}
 	}
-	return nil
 }

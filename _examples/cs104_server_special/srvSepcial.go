@@ -37,12 +37,11 @@ func main() {
 
 type mysrv struct{}
 
-func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
+func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) {
 	switch m := msg.(type) {
 	case *asdu.InterrogationCmdMsg:
 		log.Println("qoi", m.QOI)
 		// mirror := m.Header().ASDU()
 		// _ = mirror.SendReplyMirror(c, asdu.ActivationCon)
 	}
-	return nil
 }

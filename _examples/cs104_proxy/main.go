@@ -69,34 +69,41 @@ type inboundHandler struct {
 	proxy *proxy
 }
 
-func (h inboundHandler) Handle(c asdu.Connect, msg asdu.Message) error {
+func (h inboundHandler) Handle(c asdu.Connect, msg asdu.Message) {
 	header := msg.Header()
 	ca := header.Identifier.CommonAddr
 	if ca == asdu.InvalidCommonAddr {
 		if mirror := header.ASDU(); mirror != nil {
-			return mirror.SendReplyMirror(c, asdu.UnknownCA)
+			if err := mirror.SendReplyMirror(c, asdu.UnknownCA); err != nil {
+				h.proxy.logger.Printf("failed to send reply mirror: %v", err)
+			}
 		}
-		return errors.New("invalid common address")
+		return
 	}
 
 	if ca == asdu.GlobalCommonAddr {
-		return h.broadcast(c, header)
+		h.broadcast(c, header)
+		return
 	}
 
 	up := h.proxy.getUpstream(ca)
 	if up == nil {
 		if mirror := header.ASDU(); mirror != nil {
-			return mirror.SendReplyMirror(c, asdu.UnknownCA)
+			if err := mirror.SendReplyMirror(c, asdu.UnknownCA); err != nil {
+				h.proxy.logger.Printf("failed to send reply mirror: %v", err)
+			}
 		}
-		return errors.New("unknown common address")
+		return
 	}
 	h.proxy.setDownstream(c, ca)
 	out := header.ASDU()
 	if out == nil {
-		return errors.New("failed to build outbound asdu")
+		return
 	}
 	out.Identifier.CommonAddr = ca
-	return up.Send(out)
+	if err := up.Send(out); err != nil {
+		h.proxy.logger.Printf("failed to send to upstream: %v", err)
+	}
 }
 
 func (h inboundHandler) broadcast(c asdu.Connect, header asdu.Header) error {
@@ -129,18 +136,24 @@ type upstreamHandler struct {
 	ca     asdu.CommonAddr
 }
 
-func (h upstreamHandler) Handle(c asdu.Connect, msg asdu.Message) error {
-	h.logger.Printf("Received msg: ", msg.String())
+func (h upstreamHandler) Handle(c asdu.Connect, msg asdu.Message) {
+	h.logger.Printf("Received msg on ca %d. Message: %s", h.ca, msg.Header().ASDU().String())
 	down := h.proxy.getDownstream(h.ca)
 	if down == nil {
-		return nil
+		h.logger.Printf("Failed to find downstream server for address %d", h.ca)
+		return
 	}
 	out := msg.Header().ASDU()
 	if out == nil {
-		return errors.New("failed to build outbound asdu")
+		h.logger.Printf("Received msg on ca %d: failed to build outbound asdu, dropping message", h.ca)
+		return
 	}
 	out.Identifier.CommonAddr = h.ca
-	return down.Send(out)
+	if err := down.Send(out); err != nil {
+		h.logger.Printf("Failed to send to downstream: %v", err)
+		return
+	}
+	h.logger.Printf("Sent msg on ca %d to downstream server", h.ca)
 }
 
 func main() {

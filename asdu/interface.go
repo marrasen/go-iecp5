@@ -11,3 +11,8 @@ type Connect interface {
 	Send(a *ASDU) error
 	UnderlyingConn() net.Conn
 }
+
+// Handler processes parsed ASDUs using type assertions.
+type Handler interface {
+	Handle(Connect, Message)
+}

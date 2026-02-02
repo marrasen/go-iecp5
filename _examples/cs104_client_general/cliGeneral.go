@@ -58,7 +58,7 @@ func main() {
 
 }
 
-func (myClient) Handle(c asdu.Connect, msg asdu.Message) error {
+func (myClient) Handle(c asdu.Connect, msg asdu.Message) {
 	switch m := msg.(type) {
 	case *asdu.InterrogationCmdMsg:
 		fmt.Printf("InterrogationCmd: %+v\n", m)
@@ -77,5 +77,4 @@ func (myClient) Handle(c asdu.Connect, msg asdu.Message) error {
 	default:
 		fmt.Printf("ASDU: %+v\n", msg)
 	}
-	return nil
 }

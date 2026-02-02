@@ -28,7 +28,7 @@ type SrvSession struct {
 	config  *Config
 	params  *asdu.Params
 	conn    net.Conn
-	handler Handler
+	handler asdu.Handler
 
 	rcvASDU  chan []byte // for received asdu
 	sendASDU chan []byte // for send asdu
@@ -443,7 +443,8 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 
 	case *asdu.CounterInterrogationCmdMsg:
 		h := m.Header()
@@ -456,7 +457,8 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 
 	case *asdu.ReadCmdMsg:
 		h := m.Header()
@@ -466,7 +468,8 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if h.Identifier.CommonAddr == asdu.InvalidCommonAddr {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 
 	case *asdu.ClockSyncCmdMsg:
 		h := m.Header()
@@ -479,7 +482,8 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 
 	case *asdu.TestCmdMsg:
 		h := m.Header()
@@ -505,7 +509,8 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 
 	case *asdu.DelayAcquireCmdMsg:
 		h := m.Header()
@@ -519,12 +524,11 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		if m.IOA != asdu.InfoObjAddrIrrelevant {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownIOA)
 		}
-		return sf.handler.Handle(sf, m)
+		sf.handler.Handle(sf, m)
+		return nil
 	}
 
-	if err := sf.handler.Handle(sf, msg); err != nil {
-		return asduPack.SendReplyMirror(sf, asdu.UnknownTypeID)
-	}
+	sf.handler.Handle(sf, msg)
 	return nil
 }
 

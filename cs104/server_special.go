@@ -33,7 +33,7 @@ type serverSpec struct {
 }
 
 // NewServerSpecial new special server
-func NewServerSpecial(handler Handler, o *ClientOption) ServerSpecial {
+func NewServerSpecial(handler asdu.Handler, o *ClientOption) ServerSpecial {
 	return &serverSpec{
 		SrvSession: SrvSession{
 			config:  &o.config,

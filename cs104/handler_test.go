@@ -11,9 +11,8 @@ type captureHandler struct {
 	msgs []asdu.Message
 }
 
-func (h *captureHandler) Handle(c asdu.Connect, msg asdu.Message) error {
+func (h *captureHandler) Handle(c asdu.Connect, msg asdu.Message) {
 	h.msgs = append(h.msgs, msg)
-	return nil
 }
 
 func TestClientHandlerDispatch(t *testing.T) {

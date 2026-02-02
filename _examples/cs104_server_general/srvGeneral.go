@@ -23,15 +23,19 @@ func main() {
 
 type mysrv struct{}
 
-func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
+func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) {
 	switch m := msg.(type) {
 	case *asdu.InterrogationCmdMsg:
 		log.Println("qoi", m.QOI)
 		if mirror := m.Header().ASDU(); mirror != nil {
-			_ = mirror.SendReplyMirror(c, asdu.ActivationCon)
+			if err := mirror.SendReplyMirror(c, asdu.ActivationCon); err != nil {
+				log.Printf("failed to send reply mirror: %v", err)
+			}
 		}
-		_ = asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.InterrogatedByStation}, asdu.GlobalCommonAddr,
-			asdu.SinglePointInfo{})
+		if err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.InterrogatedByStation}, asdu.GlobalCommonAddr,
+			asdu.SinglePointInfo{}); err != nil {
+			log.Printf("failed to send single point: %v", err)
+		}
 		// go func() {
 		// 	for {
 		// 		err := asdu.Single(c, false, asdu.CauseOfTransmission{Cause: asdu.Spontaneous}, asdu.GlobalCommonAddr,
@@ -46,8 +50,9 @@ func (sf *mysrv) Handle(c asdu.Connect, msg asdu.Message) error {
 		// 	}
 		// }()
 		if mirror := m.Header().ASDU(); mirror != nil {
-			_ = mirror.SendReplyMirror(c, asdu.ActivationTerm)
+			if err := mirror.SendReplyMirror(c, asdu.ActivationTerm); err != nil {
+				log.Printf("failed to send reply mirror: %v", err)
+			}
 		}
 	}
-	return nil
 }
