@@ -17,7 +17,7 @@ func main() {
 	var err error
 
 	option := cs104.NewOption()
-	if err = option.SetRemoteServer("172.22.27.81:2404"); err != nil {
+	if err = option.SetRemoteServer("127.0.0.1:2404"); err != nil {
 		panic(err)
 	}
 
