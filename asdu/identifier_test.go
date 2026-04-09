@@ -2,6 +2,7 @@ package asdu
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -56,6 +57,250 @@ func TestTypeID_String(t *testing.T) {
 				t.Errorf("TypeID.String() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestTypeID_Info(t *testing.T) {
+	tests := []struct {
+		name string
+		id   TypeID
+		want TypeInfo
+	}{
+		{
+			name: "M_SP_NA_1 — monitored, no time tag",
+			id:   M_SP_NA_1,
+			want: TypeInfo{
+				TypeID:         M_SP_NA_1,
+				Name:           "M_SP_NA_1",
+				Description:    "single-point information",
+				Direction:      DirectionMonitor,
+				Category:       CategoryProcessInfoMonitor,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      false,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 1,
+			},
+		},
+		{
+			name: "M_SP_TA_1 — CP24Time2a not allowed in 104",
+			id:   M_SP_TA_1,
+			want: TypeInfo{
+				TypeID:         M_SP_TA_1,
+				Name:           "M_SP_TA_1",
+				Description:    "single-point information with time tag",
+				Direction:      DirectionMonitor,
+				Category:       CategoryProcessInfoMonitor,
+				TimeTagFormat:  TimeTagCP24Time2a,
+				IsCommand:      false,
+				HasTimeTag:     true,
+				AllowedIn104:   false,
+				InfoObjectSize: 4,
+			},
+		},
+		{
+			name: "M_SP_TB_1 — CP56Time2a, allowed in 104",
+			id:   M_SP_TB_1,
+			want: TypeInfo{
+				TypeID:         M_SP_TB_1,
+				Name:           "M_SP_TB_1",
+				Description:    "single-point information with time tag CP56Time2a",
+				Direction:      DirectionMonitor,
+				Category:       CategoryProcessInfoMonitor,
+				TimeTagFormat:  TimeTagCP56Time2a,
+				IsCommand:      false,
+				HasTimeTag:     true,
+				AllowedIn104:   true,
+				InfoObjectSize: 8,
+			},
+		},
+		{
+			name: "S_IT_TC_1 — security stat in monitor range, CP56",
+			id:   S_IT_TC_1,
+			want: TypeInfo{
+				TypeID:         S_IT_TC_1,
+				Name:           "S_IT_TC_1",
+				Description:    "integrated totals containing time-tagged security statistics",
+				Direction:      DirectionMonitor,
+				Category:       CategoryProcessInfoMonitor,
+				TimeTagFormat:  TimeTagCP56Time2a,
+				IsCommand:      false,
+				HasTimeTag:     true,
+				AllowedIn104:   true,
+				InfoObjectSize: 0,
+			},
+		},
+		{
+			name: "C_SC_NA_1 — process control command",
+			id:   C_SC_NA_1,
+			want: TypeInfo{
+				TypeID:         C_SC_NA_1,
+				Name:           "C_SC_NA_1",
+				Description:    "single command",
+				Direction:      DirectionControl,
+				Category:       CategoryProcessInfoControl,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      true,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 1,
+			},
+		},
+		{
+			name: "C_SC_TA_1 — process control command with CP56",
+			id:   C_SC_TA_1,
+			want: TypeInfo{
+				TypeID:         C_SC_TA_1,
+				Name:           "C_SC_TA_1",
+				Description:    "single command with time tag CP56Time2a",
+				Direction:      DirectionControl,
+				Category:       CategoryProcessInfoControl,
+				TimeTagFormat:  TimeTagCP56Time2a,
+				IsCommand:      true,
+				HasTimeTag:     true,
+				AllowedIn104:   true,
+				InfoObjectSize: 0,
+			},
+		},
+		{
+			name: "M_EI_NA_1 — end of init, system info monitor direction",
+			id:   M_EI_NA_1,
+			want: TypeInfo{
+				TypeID:         M_EI_NA_1,
+				Name:           "M_EI_NA_1",
+				Description:    "end of initialization",
+				Direction:      DirectionMonitor,
+				Category:       CategorySystemInfoMonitor,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      false,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 1,
+			},
+		},
+		{
+			name: "C_IC_NA_1 — interrogation, system control",
+			id:   C_IC_NA_1,
+			want: TypeInfo{
+				TypeID:         C_IC_NA_1,
+				Name:           "C_IC_NA_1",
+				Description:    "interrogation command",
+				Direction:      DirectionControl,
+				Category:       CategorySystemInfoControl,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      true,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 1,
+			},
+		},
+		{
+			name: "C_TS_TA_1 — system command with CP56",
+			id:   C_TS_TA_1,
+			want: TypeInfo{
+				TypeID:         C_TS_TA_1,
+				Name:           "C_TS_TA_1",
+				Description:    "test command with time tag CP56Time2a",
+				Direction:      DirectionControl,
+				Category:       CategorySystemInfoControl,
+				TimeTagFormat:  TimeTagCP56Time2a,
+				IsCommand:      true,
+				HasTimeTag:     true,
+				AllowedIn104:   true,
+				InfoObjectSize: 9,
+			},
+		},
+		{
+			name: "P_ME_NA_1 — parameter, control direction, not a command",
+			id:   P_ME_NA_1,
+			want: TypeInfo{
+				TypeID:         P_ME_NA_1,
+				Name:           "P_ME_NA_1",
+				Description:    "parameter of measured value, normalized value",
+				Direction:      DirectionControl,
+				Category:       CategoryParameterControl,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      false,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 3,
+			},
+		},
+		{
+			name: "F_DR_TA_1 — directory, file transfer, embeds CP56",
+			id:   F_DR_TA_1,
+			want: TypeInfo{
+				TypeID:         F_DR_TA_1,
+				Name:           "F_DR_TA_1",
+				Description:    "directory",
+				Direction:      DirectionFile,
+				Category:       CategoryFileTransfer,
+				TimeTagFormat:  TimeTagCP56Time2a,
+				IsCommand:      false,
+				HasTimeTag:     true,
+				AllowedIn104:   true,
+				InfoObjectSize: 13,
+			},
+		},
+		{
+			name: "F_SG_NA_1 — segment, variable length",
+			id:   F_SG_NA_1,
+			want: TypeInfo{
+				TypeID:         F_SG_NA_1,
+				Name:           "F_SG_NA_1",
+				Description:    "segment",
+				Direction:      DirectionFile,
+				Category:       CategoryFileTransfer,
+				TimeTagFormat:  TimeTagNone,
+				IsCommand:      false,
+				HasTimeTag:     false,
+				AllowedIn104:   true,
+				InfoObjectSize: 0,
+			},
+		},
+		{
+			name: "undefined TypeID returns zero value",
+			id:   TypeID(99),
+			want: TypeInfo{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.id.Info()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("TypeID(%d).Info() = %+v, want %+v", tt.id, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestTypeID_Info_Consistency guards against drift between the constant
+// block, the Stringer, and the typeIDSpecs metadata table.
+func TestTypeID_Info_Consistency(t *testing.T) {
+	for i := 1; i < 256; i++ {
+		id := TypeID(i)
+		name := id.String()
+		isDefined := name != strconv.Itoa(i)
+		info := id.Info()
+
+		if !isDefined {
+			if info.Name != "" {
+				t.Errorf("TypeID(%d) is undefined but Info().Name = %q", i, info.Name)
+			}
+			continue
+		}
+		if info.Name != name {
+			t.Errorf("TypeID(%d): Info().Name = %q, String() = %q", i, info.Name, name)
+		}
+		if info.Description == "" {
+			t.Errorf("TypeID(%d) %s: missing Description in typeIDSpecs", i, name)
+		}
+		if info.Category == CategoryUnknown {
+			t.Errorf("TypeID(%d) %s: Category is Unknown", i, name)
+		}
+		if info.Direction == DirectionUnknown {
+			t.Errorf("TypeID(%d) %s: Direction is Unknown", i, name)
+		}
 	}
 }
 

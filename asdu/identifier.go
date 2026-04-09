@@ -24,13 +24,36 @@ var (
 )
 
 func init() {
-	// Build reverse map for TypeID using String() for 1..255
+	// Build reverse map for TypeID using String() for 1..255 and populate
+	// the per-TypeID metadata array.
 	typeIDByName = make(map[string]TypeID, 256)
 	for i := 1; i <= 255; i++ {
-		name := TypeID(i).String()
+		t := TypeID(i)
+		name := t.String()
 		// Only map non-numeric names (String returns decimal for unknown)
-		if name != strconv.FormatInt(int64(i), 10) {
-			typeIDByName[name] = TypeID(i)
+		if name == strconv.FormatInt(int64(i), 10) {
+			continue
+		}
+		typeIDByName[name] = t
+
+		spec, ok := typeIDSpecs[t]
+		if !ok {
+			// Defined in the constant block but missing a spec entry —
+			// leave the metadata slot at its zero value.
+			continue
+		}
+		cat := categoryFor(t)
+		typeIDInfo[i] = TypeInfo{
+			TypeID:         t,
+			Name:           name,
+			Description:    spec.desc,
+			Direction:      directionFor(cat),
+			Category:       cat,
+			TimeTagFormat:  spec.timeFmt,
+			IsCommand:      strings.HasPrefix(name, "C_"),
+			HasTimeTag:     spec.timeFmt != TimeTagNone,
+			AllowedIn104:   spec.timeFmt != TimeTagCP24Time2a,
+			InfoObjectSize: infoObjSize[t],
 		}
 	}
 	// Build maps for Cause using causeSemantics
@@ -266,6 +289,247 @@ func GetInfoObjSize(id TypeID) (int, error) {
 		return 0, ErrTypeIdentifier
 	}
 	return size, nil
+}
+
+// Direction is the protocol direction of an ASDU type.
+type Direction uint8
+
+const (
+	DirectionUnknown Direction = iota
+	DirectionMonitor           // controlled → controlling station (M_*, S_* in monitor range)
+	DirectionControl           // controlling → controlled station (C_*, P_*)
+	DirectionFile              // bidirectional file transfer (F_*)
+)
+
+// String returns the human-readable name of the Direction.
+func (d Direction) String() string {
+	switch d {
+	case DirectionMonitor:
+		return "Monitor"
+	case DirectionControl:
+		return "Control"
+	case DirectionFile:
+		return "File"
+	default:
+		return "Unknown"
+	}
+}
+
+// TimeTagFormat indicates the timestamp encoding carried by an ASDU type.
+type TimeTagFormat uint8
+
+const (
+	TimeTagNone       TimeTagFormat = iota
+	TimeTagCP24Time2a               // 3-byte legacy time tag (IEC 101 only — not used in 104)
+	TimeTagCP56Time2a               // 7-byte full timestamp
+)
+
+// String returns the human-readable name of the TimeTagFormat.
+func (f TimeTagFormat) String() string {
+	switch f {
+	case TimeTagCP24Time2a:
+		return "CP24Time2a"
+	case TimeTagCP56Time2a:
+		return "CP56Time2a"
+	default:
+		return "None"
+	}
+}
+
+// TypeCategory groups TypeIDs by the standard's functional ranges.
+type TypeCategory uint8
+
+const (
+	CategoryUnknown            TypeCategory = iota
+	CategoryProcessInfoMonitor              // 1..44
+	CategoryProcessInfoControl              // 45..69
+	CategorySystemInfoMonitor               // 70..99
+	CategorySystemInfoControl               // 100..109
+	CategoryParameterControl                // 110..119
+	CategoryFileTransfer                    // 120..127
+)
+
+// String returns the human-readable name of the TypeCategory.
+func (c TypeCategory) String() string {
+	switch c {
+	case CategoryProcessInfoMonitor:
+		return "ProcessInfoMonitor"
+	case CategoryProcessInfoControl:
+		return "ProcessInfoControl"
+	case CategorySystemInfoMonitor:
+		return "SystemInfoMonitor"
+	case CategorySystemInfoControl:
+		return "SystemInfoControl"
+	case CategoryParameterControl:
+		return "ParameterControl"
+	case CategoryFileTransfer:
+		return "FileTransfer"
+	default:
+		return "Unknown"
+	}
+}
+
+// TypeInfo describes static metadata about an ASDU TypeID.
+// The zero value (Name == "") means the TypeID is not defined.
+type TypeInfo struct {
+	TypeID         TypeID
+	Name           string // e.g. "C_SC_NA_1"
+	Description    string // e.g. "single command"
+	Direction      Direction
+	Category       TypeCategory
+	TimeTagFormat  TimeTagFormat
+	IsCommand      bool // true for C_* types
+	HasTimeTag     bool // convenience for TimeTagFormat != TimeTagNone
+	AllowedIn104   bool // false for CP24Time2a-tagged types
+	InfoObjectSize int  // octet size of one info object; 0 if variable/unknown
+}
+
+// typeIDSpec carries the non-derivable metadata for a defined TypeID.
+type typeIDSpec struct {
+	desc    string
+	timeFmt TimeTagFormat
+}
+
+// typeIDSpecs is the source of truth for per-TypeID descriptions and time
+// tag format. Everything else in TypeInfo is derived from the TypeID value
+// itself or from infoObjSize.
+var typeIDSpecs = map[TypeID]typeIDSpec{
+	M_SP_NA_1: {"single-point information", TimeTagNone},
+	M_SP_TA_1: {"single-point information with time tag", TimeTagCP24Time2a},
+	M_DP_NA_1: {"double-point information", TimeTagNone},
+	M_DP_TA_1: {"double-point information with time tag", TimeTagCP24Time2a},
+	M_ST_NA_1: {"step position information", TimeTagNone},
+	M_ST_TA_1: {"step position information with time tag", TimeTagCP24Time2a},
+	M_BO_NA_1: {"bitstring of 32 bit", TimeTagNone},
+	M_BO_TA_1: {"bitstring of 32 bit with time tag", TimeTagCP24Time2a},
+	M_ME_NA_1: {"measured value, normalized value", TimeTagNone},
+	M_ME_TA_1: {"measured value, normalized value with time tag", TimeTagCP24Time2a},
+	M_ME_NB_1: {"measured value, scaled value", TimeTagNone},
+	M_ME_TB_1: {"measured value, scaled value with time tag", TimeTagCP24Time2a},
+	M_ME_NC_1: {"measured value, short floating point number", TimeTagNone},
+	M_ME_TC_1: {"measured value, short floating point number with time tag", TimeTagCP24Time2a},
+	M_IT_NA_1: {"integrated totals", TimeTagNone},
+	M_IT_TA_1: {"integrated totals with time tag", TimeTagCP24Time2a},
+	M_EP_TA_1: {"event of protection equipment with time tag", TimeTagCP24Time2a},
+	M_EP_TB_1: {"packed start events of protection equipment with time tag", TimeTagCP24Time2a},
+	M_EP_TC_1: {"packed output circuit information of protection equipment with time tag", TimeTagCP24Time2a},
+	M_PS_NA_1: {"packed single-point information with status change detection", TimeTagNone},
+	M_ME_ND_1: {"measured value, normalized value without quality descriptor", TimeTagNone},
+
+	M_SP_TB_1: {"single-point information with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_DP_TB_1: {"double-point information with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_ST_TB_1: {"step position information with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_BO_TB_1: {"bitstring of 32 bits with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_ME_TD_1: {"measured value, normalized value with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_ME_TE_1: {"measured value, scaled value with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_ME_TF_1: {"measured value, short floating point number with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_IT_TB_1: {"integrated totals with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_EP_TD_1: {"event of protection equipment with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_EP_TE_1: {"packed start events of protection equipment with time tag CP56Time2a", TimeTagCP56Time2a},
+	M_EP_TF_1: {"packed output circuit information of protection equipment with time tag CP56Time2a", TimeTagCP56Time2a},
+	S_IT_TC_1: {"integrated totals containing time-tagged security statistics", TimeTagCP56Time2a},
+
+	C_SC_NA_1: {"single command", TimeTagNone},
+	C_DC_NA_1: {"double command", TimeTagNone},
+	C_RC_NA_1: {"regulating step command", TimeTagNone},
+	C_SE_NA_1: {"set-point command, normalized value", TimeTagNone},
+	C_SE_NB_1: {"set-point command, scaled value", TimeTagNone},
+	C_SE_NC_1: {"set-point command, short floating point number", TimeTagNone},
+	C_BO_NA_1: {"bitstring of 32 bits", TimeTagNone},
+
+	C_SC_TA_1: {"single command with time tag CP56Time2a", TimeTagCP56Time2a},
+	C_DC_TA_1: {"double command with time tag CP56Time2a", TimeTagCP56Time2a},
+	C_RC_TA_1: {"regulating step command with time tag CP56Time2a", TimeTagCP56Time2a},
+	C_SE_TA_1: {"set-point command with time tag CP56Time2a, normalized value", TimeTagCP56Time2a},
+	C_SE_TB_1: {"set-point command with time tag CP56Time2a, scaled value", TimeTagCP56Time2a},
+	C_SE_TC_1: {"set-point command with time tag CP56Time2a, short floating point number", TimeTagCP56Time2a},
+	C_BO_TA_1: {"bitstring of 32-bit with time tag CP56Time2a", TimeTagCP56Time2a},
+
+	M_EI_NA_1: {"end of initialization", TimeTagNone},
+
+	S_CH_NA_1: {"authentication challenge", TimeTagNone},
+	S_RP_NA_1: {"authentication reply", TimeTagNone},
+	S_AR_NA_1: {"aggressive mode authentication request", TimeTagNone},
+	S_KR_NA_1: {"session key status request", TimeTagNone},
+	S_KS_NA_1: {"session key status", TimeTagNone},
+	S_KC_NA_1: {"session key change", TimeTagNone},
+	S_ER_NA_1: {"authentication error", TimeTagNone},
+
+	S_US_NA_1: {"user status change", TimeTagNone},
+	S_UQ_NA_1: {"update key change request", TimeTagNone},
+	S_UR_NA_1: {"update key change reply", TimeTagNone},
+	S_UK_NA_1: {"update key change — symetric", TimeTagNone},
+	S_UA_NA_1: {"update key change — asymetric", TimeTagNone},
+	S_UC_NA_1: {"update key change confirmation", TimeTagNone},
+
+	C_IC_NA_1: {"interrogation command", TimeTagNone},
+	C_CI_NA_1: {"counter interrogation command", TimeTagNone},
+	C_RD_NA_1: {"read command", TimeTagNone},
+	C_CS_NA_1: {"clock synchronization command", TimeTagNone},
+	C_TS_NA_1: {"test command", TimeTagNone},
+	C_RP_NA_1: {"reset process command", TimeTagNone},
+	C_CD_NA_1: {"delay acquisition command", TimeTagNone},
+	C_TS_TA_1: {"test command with time tag CP56Time2a", TimeTagCP56Time2a},
+
+	P_ME_NA_1: {"parameter of measured value, normalized value", TimeTagNone},
+	P_ME_NB_1: {"parameter of measured value, scaled value", TimeTagNone},
+	P_ME_NC_1: {"parameter of measured value, short floating point number", TimeTagNone},
+	P_AC_NA_1: {"parameter activation", TimeTagNone},
+
+	F_FR_NA_1: {"file ready", TimeTagNone},
+	F_SR_NA_1: {"section ready", TimeTagNone},
+	F_SC_NA_1: {"call directory, select file, call file, call section", TimeTagNone},
+	F_LS_NA_1: {"last section, last segment", TimeTagNone},
+	F_AF_NA_1: {"ack file, ack section", TimeTagNone},
+	F_SG_NA_1: {"segment", TimeTagNone},
+	F_DR_TA_1: {"directory", TimeTagCP56Time2a}, // entries embed CP56Time2a
+	F_SC_NB_1: {"QueryLog - request archive file (section 104)", TimeTagNone},
+}
+
+// typeIDInfo is the precomputed metadata array for every TypeID value.
+// Indexed by uint8(TypeID); undefined slots remain at the zero TypeInfo.
+var typeIDInfo [256]TypeInfo
+
+// categoryFor returns the TypeCategory for a numeric TypeID, based on the
+// standard's functional ranges.
+func categoryFor(t TypeID) TypeCategory {
+	switch {
+	case t >= 1 && t <= 44:
+		return CategoryProcessInfoMonitor
+	case t >= 45 && t <= 69:
+		return CategoryProcessInfoControl
+	case t >= 70 && t <= 99:
+		return CategorySystemInfoMonitor
+	case t >= 100 && t <= 109:
+		return CategorySystemInfoControl
+	case t >= 110 && t <= 119:
+		return CategoryParameterControl
+	case t >= 120 && t <= 127:
+		return CategoryFileTransfer
+	default:
+		return CategoryUnknown
+	}
+}
+
+// directionFor returns the protocol direction implied by a TypeCategory.
+func directionFor(c TypeCategory) Direction {
+	switch c {
+	case CategoryProcessInfoMonitor, CategorySystemInfoMonitor:
+		return DirectionMonitor
+	case CategoryProcessInfoControl, CategorySystemInfoControl, CategoryParameterControl:
+		return DirectionControl
+	case CategoryFileTransfer:
+		return DirectionFile
+	default:
+		return DirectionUnknown
+	}
+}
+
+// Info returns metadata about the TypeID. For undefined TypeIDs the
+// returned value's Name is empty and enum fields are their zero/Unknown
+// variant.
+func (sf TypeID) Info() TypeInfo {
+	return typeIDInfo[sf]
 }
 
 const (
