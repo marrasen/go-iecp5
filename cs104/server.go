@@ -73,6 +73,9 @@ func (sf *Server) ListenAndServe(addr string) error {
 		sf.Error("server run failed, %v", err)
 		return err
 	}
+	if sf.TLSConfig != nil {
+		listen = tls.NewListener(listen, sf.TLSConfig)
+	}
 	sf.mux.Lock()
 	sf.listen = listen
 	sf.mux.Unlock()

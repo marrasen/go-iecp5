@@ -5,6 +5,8 @@ package cs104
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"io"
 	"net"
@@ -562,6 +564,15 @@ func (sf *SrvSession) Send(u *asdu.ASDU) error {
 // UnderlyingConn got under net.conn
 func (sf *SrvSession) UnderlyingConn() net.Conn {
 	return sf.conn
+}
+
+// PeerCertificates returns the peer's TLS certificates if the underlying
+// connection is TLS, or nil otherwise.
+func (sf *SrvSession) PeerCertificates() []*x509.Certificate {
+	if tc, ok := sf.conn.(*tls.Conn); ok {
+		return tc.ConnectionState().PeerCertificates
+	}
+	return nil
 }
 
 // Close cancels the session and closes the underlying connection.
