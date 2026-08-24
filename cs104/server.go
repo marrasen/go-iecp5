@@ -66,6 +66,14 @@ func (sf *Server) SetParams(p *asdu.Params) *Server {
 	return sf
 }
 
+// SetTLSConfig sets the TLS configuration used for inbound connections.
+// It must be called before ListenAndServe or Serve; changes made after
+// the server has started have no effect.
+func (sf *Server) SetTLSConfig(cfg *tls.Config) *Server {
+	sf.TLSConfig = cfg
+	return sf
+}
+
 // ListenAndServe runs the server until stopped or it fails.
 func (sf *Server) ListenAndServe(addr string) error {
 	listen, err := net.Listen("tcp", addr)
@@ -73,10 +81,22 @@ func (sf *Server) ListenAndServe(addr string) error {
 		sf.Error("server run failed, %v", err)
 		return err
 	}
-	if sf.TLSConfig != nil {
-		listen = tls.NewListener(listen, sf.TLSConfig)
-	}
+	return sf.Serve(listen)
+}
+
+// Serve accepts connections on listen until stopped or it fails. When
+// TLSConfig is set, each accepted connection must complete its TLS handshake
+// within ConnectTimeout0 before a session is created; connections that fail
+// the handshake are closed without ever becoming a session.
+func (sf *Server) Serve(listen net.Listener) error {
+	tlsCfg := sf.TLSConfig
+
 	sf.mux.Lock()
+	if atomic.LoadUint32(&sf.closing) != 0 {
+		sf.mux.Unlock()
+		_ = listen.Close()
+		return ErrServerClosed
+	}
 	sf.listen = listen
 	sf.mux.Unlock()
 
@@ -99,11 +119,31 @@ func (sf *Server) ListenAndServe(addr string) error {
 
 		sf.wg.Add(1)
 		go func() {
+			defer sf.wg.Done()
+
+			var tlsState *tls.ConnectionState
+			if tlsCfg != nil {
+				tlsConn := tls.Server(conn, tlsCfg)
+				// Bound the handshake like the client side does, so an
+				// unauthenticated peer cannot hold the connection open.
+				_ = conn.SetDeadline(time.Now().Add(sf.config.ConnectTimeout0))
+				if err := tlsConn.HandshakeContext(ctx); err != nil {
+					sf.Error("tls handshake failed from %s, %v", conn.RemoteAddr(), err)
+					_ = tlsConn.Close()
+					return
+				}
+				_ = conn.SetDeadline(time.Time{})
+				state := tlsConn.ConnectionState()
+				tlsState = &state
+				conn = tlsConn
+			}
+
 			sess := &SrvSession{
 				config:   &sf.config,
 				params:   &sf.params,
 				handler:  sf.handler,
 				conn:     conn,
+				tlsState: tlsState,
 				rcvASDU:  make(chan []byte, sf.config.RecvUnAckLimitW<<4),
 				sendASDU: make(chan []byte, sf.config.SendUnAckLimitK<<4),
 				rcvRaw:   make(chan []byte, sf.config.RecvUnAckLimitW<<5),
@@ -119,7 +159,6 @@ func (sf *Server) ListenAndServe(addr string) error {
 			sf.mux.Lock()
 			delete(sf.sessions, sess)
 			sf.mux.Unlock()
-			sf.wg.Done()
 		}()
 	}
 }

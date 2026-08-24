@@ -31,6 +31,10 @@ type SrvSession struct {
 	params  *asdu.Params
 	conn    net.Conn
 	handler asdu.Handler
+	// tlsState is captured after the accept-side handshake completes, so
+	// reading it never touches the tls.Conn handshake lock and survives
+	// wrapping of conn.
+	tlsState *tls.ConnectionState
 
 	rcvASDU  chan []byte // for received asdu
 	sendASDU chan []byte // for send asdu
@@ -566,9 +570,15 @@ func (sf *SrvSession) UnderlyingConn() net.Conn {
 	return sf.conn
 }
 
-// PeerCertificates returns the peer's TLS certificates if the underlying
-// connection is TLS, or nil otherwise.
+// PeerCertificates returns the certificate chain the peer presented during
+// the TLS handshake. It returns nil for plain TCP connections and for TLS
+// connections on which the peer presented no certificate.
 func (sf *SrvSession) PeerCertificates() []*x509.Certificate {
+	if sf.tlsState != nil {
+		return sf.tlsState.PeerCertificates
+	}
+	// Dial-side sessions (NewServerSpecial) carry a tls.Conn whose handshake
+	// openConnection has already completed, so this cannot block.
 	if tc, ok := sf.conn.(*tls.Conn); ok {
 		return tc.ConnectionState().PeerCertificates
 	}
