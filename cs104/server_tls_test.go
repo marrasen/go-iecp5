@@ -2,6 +2,7 @@ package cs104
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -18,20 +19,39 @@ import (
 
 // testPKI holds certificates generated for a test run.
 type testPKI struct {
-	caPool          *x509.CertPool
 	serverTLSConfig *tls.Config
 	clientTLSConfig *tls.Config
+}
+
+// issueCert generates a key and certificate from tmpl. When parent is nil the
+// certificate is self-signed; otherwise it is signed by parent/parentKey.
+func issueCert(t *testing.T, tmpl, parent *x509.Certificate, parentKey crypto.Signer) (tls.Certificate, *x509.Certificate) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signKey := crypto.Signer(key)
+	if parent == nil {
+		parent = tmpl
+	} else {
+		signKey = parentKey
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, parent, &key.PublicKey, signKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}, cert
 }
 
 func generateTestPKI(t *testing.T) testPKI {
 	t.Helper()
 
-	// CA key and self-signed cert
-	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	caTemplate := &x509.Certificate{
+	caTLSCert, caCert := issueCert(t, &x509.Certificate{
 		SerialNumber:          big.NewInt(1),
 		Subject:               pkix.Name{CommonName: "Test CA"},
 		NotBefore:             time.Now().Add(-time.Hour),
@@ -39,24 +59,10 @@ func generateTestPKI(t *testing.T) testPKI {
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
-	}
-	caDER, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	caCert, err := x509.ParseCertificate(caDER)
-	if err != nil {
-		t.Fatal(err)
-	}
-	caPool := x509.NewCertPool()
-	caPool.AddCert(caCert)
+	}, nil, nil)
+	caKey := caTLSCert.PrivateKey.(crypto.Signer)
 
-	// Server cert signed by CA
-	serverKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	serverTemplate := &x509.Certificate{
+	serverTLSCert, _ := issueCert(t, &x509.Certificate{
 		SerialNumber: big.NewInt(2),
 		Subject:      pkix.Name{CommonName: "Test Server"},
 		NotBefore:    time.Now().Add(-time.Hour),
@@ -64,40 +70,21 @@ func generateTestPKI(t *testing.T) testPKI {
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1)},
-	}
-	serverDER, err := x509.CreateCertificate(rand.Reader, serverTemplate, caCert, &serverKey.PublicKey, caKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	serverTLSCert := tls.Certificate{
-		Certificate: [][]byte{serverDER},
-		PrivateKey:  serverKey,
-	}
+	}, caCert, caKey)
 
-	// Client cert signed by CA
-	clientKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	clientTemplate := &x509.Certificate{
+	clientTLSCert, _ := issueCert(t, &x509.Certificate{
 		SerialNumber: big.NewInt(3),
 		Subject:      pkix.Name{CommonName: "Test Client"},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	}
-	clientDER, err := x509.CreateCertificate(rand.Reader, clientTemplate, caCert, &clientKey.PublicKey, caKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	clientTLSCert := tls.Certificate{
-		Certificate: [][]byte{clientDER},
-		PrivateKey:  clientKey,
-	}
+	}, caCert, caKey)
+
+	caPool := x509.NewCertPool()
+	caPool.AddCert(caCert)
 
 	return testPKI{
-		caPool: caPool,
 		serverTLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{serverTLSCert},
 			ClientAuth:   tls.RequireAndVerifyClientCert,
@@ -111,247 +98,194 @@ func generateTestPKI(t *testing.T) testPKI {
 	}
 }
 
-// waitForListener polls the server until its listener is ready and returns the address.
-func waitForListener(t *testing.T, srv *Server) string {
+// startServer serves srv on an ephemeral port and returns the bound address.
+func startServer(t *testing.T, srv *Server) string {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		srv.mux.Lock()
-		l := srv.listen
-		srv.mux.Unlock()
-		if l != nil {
-			return l.Addr().String()
-		}
-		time.Sleep(10 * time.Millisecond)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
 	}
-	t.Fatal("server did not start listening in time")
-	return ""
+	go func() { _ = srv.Serve(ln) }()
+	t.Cleanup(func() { _ = srv.Close() })
+	return ln.Addr().String()
 }
 
-func TestTLSHappyPath(t *testing.T) {
+func TestSessionActivation(t *testing.T) {
 	pki := generateTestPKI(t)
 
-	activeCh := make(chan *SrvSession, 1)
-	handler := &captureHandler{}
-	srv := NewServer(handler)
-	srv.TLSConfig = pki.serverTLSConfig
-	srv.ConnState = func(c asdu.Connect, state ConnState) {
-		if state == ConnStateActive {
-			if sess, ok := c.(*SrvSession); ok {
-				activeCh <- sess
+	cases := []struct {
+		name      string
+		serverTLS *tls.Config
+		scheme    string
+		clientTLS *tls.Config
+		wantCN    string // "" means expect no peer certificates
+	}{
+		{"TLS", pki.serverTLSConfig, "tls://", pki.clientTLSConfig, "Test Client"},
+		{"PlainTCP", nil, "tcp://", nil, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := &captureHandler{}
+			srv := NewServer(handler).SetTLSConfig(tc.serverTLS)
+			activeCh := make(chan *SrvSession, 1)
+			srv.ConnState = func(c asdu.Connect, state ConnState) {
+				if state == ConnStateActive {
+					if sess, ok := c.(*SrvSession); ok {
+						select {
+						case activeCh <- sess:
+						default:
+						}
+					}
+				}
 			}
-		}
-	}
+			addr := startServer(t, srv)
 
-	go srv.ListenAndServe("127.0.0.1:0")
-	defer srv.Close()
+			opt := NewOption()
+			if err := opt.SetRemoteServer(tc.scheme + addr); err != nil {
+				t.Fatal(err)
+			}
+			if tc.clientTLS != nil {
+				opt.SetTLSConfig(tc.clientTLS)
+			}
 
-	addr := waitForListener(t, srv)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-	opt := NewOption()
-	if err := opt.SetRemoteServer("tls://" + addr); err != nil {
-		t.Fatal(err)
-	}
-	opt.SetTLSConfig(pki.clientTLSConfig)
+			clientNewCh := make(chan struct{}, 1)
+			client := NewClient(handler, opt)
+			client.SetConnStateHandler(func(_ asdu.Connect, state ConnState) {
+				if state == ConnStateNew {
+					select {
+					case clientNewCh <- struct{}{}:
+					default:
+					}
+				}
+			})
+			go client.Start(ctx)
+			t.Cleanup(func() { _ = client.Close() })
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Wait for client ConnStateNew before sending STARTDT
-	clientNewCh := make(chan struct{}, 1)
-	client := NewClient(handler, opt)
-	client.SetConnStateHandler(func(_ asdu.Connect, state ConnState) {
-		if state == ConnStateNew {
 			select {
-			case clientNewCh <- struct{}{}:
-			default:
+			case <-clientNewCh:
+				client.SendStartDt()
+			case <-ctx.Done():
+				t.Fatal("timed out waiting for client to connect")
 			}
-		}
-	})
-	go client.Start(ctx)
-	defer client.Close()
 
-	// Wait for client to connect, then send STARTDT
-	select {
-	case <-clientNewCh:
-		client.SendStartDt()
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out waiting for client to connect")
-	}
-
-	select {
-	case sess := <-activeCh:
-		certs := sess.PeerCertificates()
-		if len(certs) == 0 {
-			t.Fatal("expected peer certificates, got none")
-		}
-		if certs[0].Subject.CommonName != "Test Client" {
-			t.Fatalf("unexpected CN: %s", certs[0].Subject.CommonName)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out waiting for TLS connection to become active")
+			select {
+			case sess := <-activeCh:
+				certs := sess.PeerCertificates()
+				if tc.wantCN == "" {
+					if certs != nil {
+						t.Fatalf("expected nil peer certificates on plain TCP, got %d", len(certs))
+					}
+				} else {
+					if len(certs) == 0 {
+						t.Fatal("expected peer certificates, got none")
+					}
+					if certs[0].Subject.CommonName != tc.wantCN {
+						t.Fatalf("unexpected CN: %s", certs[0].Subject.CommonName)
+					}
+				}
+			case <-ctx.Done():
+				t.Fatal("timed out waiting for connection to become active")
+			}
+		})
 	}
 }
 
-func TestPlainTCPRegression(t *testing.T) {
-	activeCh := make(chan *SrvSession, 1)
-	handler := &captureHandler{}
-	srv := NewServer(handler)
-	// TLSConfig is nil — plain TCP
-	srv.ConnState = func(c asdu.Connect, state ConnState) {
-		if state == ConnStateActive {
-			if sess, ok := c.(*SrvSession); ok {
-				activeCh <- sess
-			}
-		}
-	}
-
-	go srv.ListenAndServe("127.0.0.1:0")
-	defer srv.Close()
-
-	addr := waitForListener(t, srv)
-
-	opt := NewOption()
-	if err := opt.SetRemoteServer("tcp://" + addr); err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	clientNewCh := make(chan struct{}, 1)
-	client := NewClient(handler, opt)
-	client.SetConnStateHandler(func(_ asdu.Connect, state ConnState) {
+// startRejectingServer starts a TLS server and returns its address plus a
+// channel that reports any session creation, which these tests treat as a
+// failure: a connection that fails the handshake must never become a session.
+func startRejectingServer(t *testing.T, pki testPKI) (string, <-chan struct{}) {
+	t.Helper()
+	newCh := make(chan struct{}, 1)
+	srv := NewServer(&captureHandler{}).SetTLSConfig(pki.serverTLSConfig)
+	srv.ConnState = func(_ asdu.Connect, state ConnState) {
 		if state == ConnStateNew {
 			select {
-			case clientNewCh <- struct{}{}:
+			case newCh <- struct{}{}:
 			default:
 			}
 		}
-	})
-	go client.Start(ctx)
-	defer client.Close()
-
-	select {
-	case <-clientNewCh:
-		client.SendStartDt()
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out waiting for client to connect")
 	}
-
-	select {
-	case sess := <-activeCh:
-		certs := sess.PeerCertificates()
-		if certs != nil {
-			t.Fatalf("expected nil peer certificates on plain TCP, got %d", len(certs))
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out waiting for plain TCP connection to become active")
-	}
+	return startServer(t, srv), newCh
 }
 
 func TestPlainClientToTLSServerFails(t *testing.T) {
 	pki := generateTestPKI(t)
+	addr, newCh := startRejectingServer(t, pki)
 
-	closedCh := make(chan struct{}, 1)
-	handler := &captureHandler{}
-	srv := NewServer(handler)
-	srv.TLSConfig = pki.serverTLSConfig
-	srv.ConnState = func(_ asdu.Connect, state ConnState) {
-		if state == ConnStateClosed {
-			select {
-			case closedCh <- struct{}{}:
-			default:
-			}
-		}
-	}
-
-	go srv.ListenAndServe("127.0.0.1:0")
-	defer srv.Close()
-
-	addr := waitForListener(t, srv)
-
-	// Plain TCP client — no TLS. Use raw TCP dial to avoid the client's scheme-based TLS logic.
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Send garbage (IEC 104 start frame) which is not a TLS ClientHello
-	conn.Write([]byte{0x68, 0x04, 0x07, 0x00, 0x00, 0x00}) // STARTDT-Active U-frame
 	defer conn.Close()
 
-	// The server session should fail the TLS handshake and close
+	// An IEC 104 start frame is not a TLS ClientHello; the handshake must fail.
+	if _, err := conn.Write([]byte{0x68, 0x04, 0x07, 0x00, 0x00, 0x00}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The server must close the connection, possibly after sending a TLS alert.
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	buf := make([]byte, 256)
+	var readErr error
+	for readErr == nil {
+		_, readErr = conn.Read(buf)
+	}
+	if ne, ok := readErr.(net.Error); ok && ne.Timeout() {
+		t.Fatal("expected server to close the connection after a failed handshake")
+	}
+
 	select {
-	case <-closedCh:
-		// Expected — the connection failed
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out — expected plain client connection to TLS server to fail")
+	case <-newCh:
+		t.Fatal("server created a session for a connection that failed the handshake")
+	default:
 	}
 }
 
 func TestUntrustedCertRejected(t *testing.T) {
 	pki := generateTestPKI(t)
 
-	// Generate a separate, untrusted client cert (self-signed, not by the server's CA)
-	rogueKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rogueTemplate := &x509.Certificate{
+	// A self-signed client cert, not issued by the CA the server trusts.
+	rogueTLSCert, _ := issueCert(t, &x509.Certificate{
 		SerialNumber: big.NewInt(99),
 		Subject:      pkix.Name{CommonName: "Rogue Client"},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	}
-	rogueDER, err := x509.CreateCertificate(rand.Reader, rogueTemplate, rogueTemplate, &rogueKey.PublicKey, rogueKey)
+	}, nil, nil)
+
+	addr, newCh := startRejectingServer(t, pki)
+
+	cfg := pki.clientTLSConfig.Clone()
+	cfg.Certificates = []tls.Certificate{rogueTLSCert}
+
+	raw, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rogueTLSCert := tls.Certificate{
-		Certificate: [][]byte{rogueDER},
-		PrivateKey:  rogueKey,
+	defer raw.Close()
+	_ = raw.SetDeadline(time.Now().Add(5 * time.Second))
+
+	conn := tls.Client(raw, cfg)
+	err = conn.Handshake()
+	if err == nil {
+		// Under TLS 1.3 the server's bad-certificate alert arrives after the
+		// client considers the handshake done; it surfaces on the first read.
+		_, err = conn.Read(make([]byte, 1))
 	}
-
-	closedCh := make(chan struct{}, 1)
-	handler := &captureHandler{}
-	srv := NewServer(handler)
-	srv.TLSConfig = pki.serverTLSConfig
-	srv.ConnState = func(_ asdu.Connect, state ConnState) {
-		if state == ConnStateClosed {
-			select {
-			case closedCh <- struct{}{}:
-			default:
-			}
-		}
+	if err == nil {
+		t.Fatal("expected handshake with untrusted client cert to be rejected")
 	}
-
-	go srv.ListenAndServe("127.0.0.1:0")
-	defer srv.Close()
-
-	addr := waitForListener(t, srv)
-
-	opt := NewOption()
-	if err := opt.SetRemoteServer("tls://" + addr); err != nil {
-		t.Fatal(err)
+	if ne, ok := err.(net.Error); ok && ne.Timeout() {
+		t.Fatal("expected certificate rejection, got timeout")
 	}
-	opt.SetTLSConfig(&tls.Config{
-		RootCAs:      pki.caPool,
-		Certificates: []tls.Certificate{rogueTLSCert},
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	client := NewClient(handler, opt)
-	go client.Start(ctx)
-	defer client.Close()
 
 	select {
-	case <-closedCh:
-		// Expected — untrusted cert rejected
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out — expected untrusted cert to be rejected")
+	case <-newCh:
+		t.Fatal("server created a session for an untrusted client cert")
+	default:
 	}
 }
