@@ -1,114 +1,312 @@
 # go-iecp5
 
-Note about this repository
-- This repository is a fork of https://github.com/thinkgos/go-iecp5.
-- The original upstream repository has been archived by its author and is no longer maintained.
-- The original README contained the following Chinese notice: "已归档, 不再维护, 放弃License. 有需要的可以自由分发". Translation: "Archived, no longer maintained, license abandoned. If needed, you can freely redistribute."
+IEC 60870-5-104 client and server in pure Go.
 
-go-iecp5 library for IEC 60870-5 based protocols in pure Go.
-The current implementation contains code for IEC 60870-5-104 (protocol over TCP/IP) specifications.
-
-
-
-[![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/github.com/thinkgos/go-iecp5?tab=doc)
-[![Tests](https://github.com/thinkgos/go-iecp5/actions/workflows/ci.yml/badge.svg)](https://github.com/thinkgos/go-iecp5/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/thinkgos/go-iecp5/branch/master/graph/badge.svg)](https://codecov.io/gh/thinkgos/go-iecp5)
-[![Go Report Card](https://goreportcard.com/badge/github.com/thinkgos/go-iecp5)](https://goreportcard.com/report/github.com/thinkgos/go-iecp5)
+[![Go Reference](https://pkg.go.dev/badge/github.com/marrasen/go-iecp5.svg)](https://pkg.go.dev/github.com/marrasen/go-iecp5)
+[![Tests](https://github.com/marrasen/go-iecp5/actions/workflows/go.yml/badge.svg)](https://github.com/marrasen/go-iecp5/actions/workflows/go.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tag](https://img.shields.io/github/v/tag/thinkgos/go-iecp5)](https://github.com/thinkgos/go-iecp5/tags)
-[![Sourcegraph](https://sourcegraph.com/github.com/thinkgos/go-iecp5/-/badge.svg)](https://sourcegraph.com/github.com/thinkgos/go-iecp5?badge)
+[![Tag](https://img.shields.io/github/v/tag/marrasen/go-iecp5)](https://github.com/marrasen/go-iecp5/tags)
 
+IEC 60870-5-104 (often called IEC 104) is the TCP/IP transport used by SCADA
+systems to talk to substations and other outstations. This library implements
+the transport layer (APCI) and the application layer (ASDU) for that protocol.
+You can use it to build a controlling station (client), a controlled station
+(server), or something in between such as a proxy.
 
-asdu package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/asdu?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/asdu)  
-clog package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/clog?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/clog)  
-cs104 package: [![GoDoc](https://godoc.org/github.com/thinkgos/go-iecp5/cs104?status.svg)](https://godoc.org/github.com/thinkgos/go-iecp5/cs104)  
+## Features
 
-## License
+- Client and server for IEC 60870-5-104 over TCP.
+- Optional TLS on both client and server.
+- Custom dialer on the client, for example to tunnel through SSH.
+- All common ASDU types in both directions: monitoring, commands, parameters
+  and system commands. File transfer is not implemented.
+- Inbound ASDUs are parsed once into typed Go structs. Your handler gets a
+  typed message and picks it apart with a type switch.
+- Outbound ASDUs are built with plain functions, one per type.
+- Every ASDU and parsed message has a readable `String()` form.
+- ASDUs serialise to JSON.
+- Static metadata for every type ID: name, direction, time tag format and
+  information object size.
+- Connection lifecycle callbacks, context-based cancellation and graceful
+  server shutdown.
+- Pluggable, levelled logging.
 
-This fork adopts the MIT License.
+## Install
 
-- Background: the original upstream repository (thinkgos/go-iecp5) was archived with the notice: "已归档, 不再维护, 放弃License. 有需要的可以自由分发" ("Archived, no longer maintained, license abandoned. If needed, you can freely redistribute.").
-- Change: this fork changes the licensing of the code present here to MIT to simplify reuse and clarify terms.
-- Implementation details:
-  - All source files include SPDX-License-Identifier: MIT headers.
-  - The root LICENSE file contains the full MIT License text.
+```
+go get github.com/marrasen/go-iecp5
+```
 
-See the LICENSE file in the repository root for the full text and terms.
+Requires Go 1.25 or newer.
 
-## Feature:
+## Packages
 
-- client/server for CS 104 TCP/IP communication
-- support for much application layer (except file object) message types,
+| Package | What it holds |
+| --- | --- |
+| `cs104` | The IEC 104 client, server and connection handling. |
+| `asdu` | ASDU types, parsing, building and sending. |
+| `clog` | The small logging interface used by the other packages. |
+| `cs101` | Placeholder for IEC 60870-5-101. Only FT1.2 frame constants exist. |
 
-## Handler API (cs104)
+## The handler
 
-All inbound ASDUs are parsed once and delivered to a single handler. Use type assertions
-to access the specific message payloads.
+Both client and server deliver every inbound ASDU to one handler:
 
 ```go
 type Handler interface {
-	Handle(asdu.Connect, asdu.Message) error
-}
-
-type myHandler struct{}
-
-func (myHandler) Handle(c asdu.Connect, msg asdu.Message) error {
-	switch m := msg.(type) {
-	case asdu.InterrogationCmdMsg:
-		if mirror := m.Header().ASDU(); mirror != nil {
-			_ = mirror.SendReplyMirror(c, asdu.ActivationCon)
-		}
-	default:
-		// handle other message types
-	}
-	return nil
+	Handle(asdu.Connect, asdu.Message)
 }
 ```
 
-## Connection lifecycle (cs104)
-
-Use a ConnState callback for connection lifecycle events and `ListenAndServe`/`Shutdown` for server
-lifecycle control.
+The `asdu.Connect` is the connection the message arrived on. Use it to send
+replies. The `asdu.Message` is already parsed. Assert on the concrete type to
+get at the payload:
 
 ```go
-srv := cs104.NewServer(&myHandler{})
-srv.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
-	log.Printf("conn state: %s", s)
+type handler struct{}
+
+func (handler) Handle(c asdu.Connect, msg asdu.Message) {
+	switch m := msg.(type) {
+	case *asdu.SinglePointMsg:
+		for _, item := range m.Items {
+			log.Printf("IOA %d = %v (%s)", item.Ioa, item.Value, item.Qds)
+		}
+	case *asdu.MeasuredValueFloatMsg:
+		for _, item := range m.Items {
+			log.Printf("IOA %d = %f", item.Ioa, item.Value)
+		}
+	case *asdu.UnknownMsg:
+		log.Printf("unsupported type %s", m.TypeID())
+	default:
+		log.Printf("%s", msg)
+	}
+}
+```
+
+Message types are named after the ASDU family, not the individual type ID.
+`SinglePointMsg` covers `M_SP_NA_1`, `M_SP_TA_1` and `M_SP_TB_1`. Check
+`msg.TypeID()` or the `Time` field on each item when the difference matters.
+
+Every message carries a header with the identifier and the raw payload.
+`m.Header().ASDU()` rebuilds the original ASDU. That is how you send a
+mirrored reply:
+
+```go
+case *asdu.InterrogationCmdMsg:
+	mirror := m.Header().ASDU()
+	_ = mirror.SendReplyMirror(c, asdu.ActivationCon)
+	// send the interrogated data here
+	_ = mirror.SendReplyMirror(c, asdu.ActivationTerm)
+```
+
+## Client
+
+```go
+opt := cs104.NewOption()
+if err := opt.SetRemoteServer("10.0.0.5:2404"); err != nil {
+	log.Fatal(err)
+}
+
+cli := cs104.NewClient(handler{}, opt)
+cli.SetLogLevel(clog.LevelWarn)
+
+cli.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
+	switch s {
+	case cs104.ConnStateNew:
+		// TCP connection is up. Ask the server to start data transfer.
+		c.(*cs104.Client).SendStartDt()
+	case cs104.ConnStateActive:
+		// Data transfer is active. Ask for everything.
+		coa := asdu.CauseOfTransmission{Cause: asdu.Activation}
+		_ = c.(*cs104.Client).InterrogationCmd(coa, asdu.CommonAddr(1), asdu.QOIStation)
+	}
 })
 
+ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+defer stop()
+
+// Start blocks until the connection drops or the context is cancelled.
+if err := cli.Start(ctx); err != nil {
+	log.Println(err)
+}
+```
+
+`Start` makes one connection attempt and returns when that connection ends.
+It does not reconnect. Wrap it in a loop if you want retries.
+
+The client has convenience methods for the system commands:
+`InterrogationCmd`, `CounterInterrogationCmd`, `ReadCmd`,
+`ClockSynchronizationCmd`, `ResetProcessCmd`, `DelayAcquireCommand` and
+`TestCommand`. Everything else is sent with the functions in the `asdu`
+package, described below.
+
+### TLS and custom dialers
+
+Use a `tls://` address and give the option a TLS config:
+
+```go
+_ = opt.SetRemoteServer("tls://10.0.0.5:19998")
+opt.SetTLSConfig(&tls.Config{ /* ... */ })
+```
+
+For an SSH tunnel or any other transport, set a dialer. The library calls it
+to get the raw TCP connection and wraps it in TLS if the scheme asks for it:
+
+```go
+opt.SetDialContext(func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return sshClient.Dial(network, addr)
+})
+```
+
+## Server
+
+```go
+srv := cs104.NewServer(handler{})
+srv.SetLogLevel(clog.LevelWarn)
+srv.ConnState = func(c asdu.Connect, s cs104.ConnState) {
+	log.Printf("conn %s: %s", c.UnderlyingConn().RemoteAddr(), s)
+}
+
 go func() {
-	if err := srv.ListenAndServe(":2404"); err != nil && !errors.Is(err, cs104.ErrServerClosed) {
-		log.Printf("listen failed: %v", err)
+	err := srv.ListenAndServe(":2404")
+	if err != nil && !errors.Is(err, cs104.ErrServerClosed) {
+		log.Fatal(err)
 	}
 }()
 
-// Later...
+// Later, on shutdown:
 _ = srv.Shutdown(context.Background())
 ```
 
-Clients use the same ConnState mechanism:
+`Serve` accepts a `net.Listener` if you want to control the socket yourself.
+`Shutdown` stops accepting, closes every session and waits for them to
+finish. `Close` does the same without waiting.
+
+The server validates system commands before they reach your handler. An
+interrogation with the wrong cause of transmission, common address or
+information object address gets a negative mirror reply and is dropped. Test
+commands are answered by the server itself. Everything else goes to your
+handler, which is responsible for the confirmation and termination replies.
+
+Sending from the server side uses the connection passed to the handler, or
+`srv.Send`, which broadcasts to every active session.
+
+### Server TLS
 
 ```go
-cli := cs104.NewClient(&myHandler{}, option)
-cli.SetConnStateHandler(func(c asdu.Connect, s cs104.ConnState) {
-	if s == cs104.ConnStateNew {
-		c.(*cs104.Client).SendStartDt()
-	}
+srv.SetTLSConfig(&tls.Config{
+	Certificates: []tls.Certificate{cert},
+	ClientAuth:   tls.RequireAndVerifyClientCert,
+	ClientCAs:    pool,
 })
 ```
 
-# Reference
-lib60870 C library [lib60870](https://github.com/mz-automation/lib60870)  
-lib60870 C library docs [lib60870 doc](https://support.mz-automation.de/doc/lib60870/latest/group__CS104__MASTER.html)
+The handshake runs before a session is admitted. A client that fails it never
+reaches the handler. Inside the handler, the connection can be asserted to
+`*cs104.SrvSession` and `PeerCertificates()` returns the client chain.
 
-## Donation
+### Reverse-connecting server
 
-If this package helps you a lot, you can support the original author:
+`cs104.NewServerSpecial` builds a server that dials out to a fixed peer
+instead of listening. It takes the same option as the client. This covers
+setups where the outstation must open the connection.
 
-**Alipay**
+## Sending ASDUs
 
-![alipay](https://github.com/thinkgos/thinkgos/blob/master/asserts/alipay.jpg)
+The `asdu` package has one send function per ASDU family. Each takes the
+connection, the cause of transmission, the common address and the payload.
 
-**WeChat Pay**
+Monitoring direction, for a server:
 
-![wxpay](https://github.com/thinkgos/thinkgos/blob/master/asserts/wxpay.jpg)
+```go
+coa := asdu.CauseOfTransmission{Cause: asdu.Spontaneous}
+ca := asdu.CommonAddr(1)
+
+_ = asdu.Single(c, false, coa, ca, asdu.SinglePointInfo{Ioa: 100, Value: true, Qds: asdu.QDSGood})
+_ = asdu.MeasuredValueFloatCP56Time2a(c, coa, ca, asdu.MeasuredValueFloatInfo{
+	Ioa:   200,
+	Value: 230.5,
+	Qds:   asdu.QDSGood,
+	Time:  time.Now(),
+})
+```
+
+Control direction, for a client. The type ID picks the variant with or without
+a time tag:
+
+```go
+coa := asdu.CauseOfTransmission{Cause: asdu.Activation}
+
+_ = asdu.SingleCmd(c, asdu.C_SC_NA_1, coa, ca, asdu.SingleCommandInfo{
+	Ioa:   100,
+	Value: true,
+	Qoc:   asdu.QualifierOfCommand{Qual: asdu.QOCShortPulseDuration},
+})
+_ = asdu.SetpointCmdFloat(c, asdu.C_SE_NC_1, coa, ca, asdu.SetpointCommandFloatInfo{
+	Ioa:   300,
+	Value: 42.0,
+})
+```
+
+Select-before-operate is expressed with the `InSelect` flag on the qualifier.
+Send once with it set, wait for the confirmation, then send again with it
+cleared. See `_examples/cs104_client_sbo` for a complete run-through.
+
+You can also build an ASDU from a parsed message with `asdu.EncodeMessage`,
+or work on the raw ASDU with `asdu.NewASDU` and `Send`.
+
+## Type metadata
+
+`TypeID.Info()` returns static facts about any type ID:
+
+```go
+info := asdu.M_ME_TF_1.Info()
+// info.Name           "M_ME_TF_1"
+// info.Description    "measured value, short floating point number with time tag CP56Time2a"
+// info.Direction      Monitor
+// info.TimeTagFormat  CP56Time2a
+// info.InfoObjectSize 12
+```
+
+## Logging
+
+Client and server embed a logger. It is off by default.
+
+```go
+cli.SetLogLevel(clog.LevelDebug)
+cli.SetLogProvider(myLogger) // anything that implements clog.LogProvider
+```
+
+Levels are `LevelOff`, `LevelCritical`, `LevelError`, `LevelWarn` and
+`LevelDebug`. Debug prints every frame.
+
+## Examples
+
+The `_examples` folder has runnable programs:
+
+- `cs104_client_general`: connect, activate and interrogate.
+- `cs104_client_sbo`: select-before-operate command sequence.
+- `cs104_server_general`: answer interrogations with data.
+- `cs104_server_special`: reverse-connecting server.
+- `cs104_proxy`: route between one inbound side and several outbound
+  servers by common address.
+
+## References
+
+- [IEC 60870-5-104 on Wikipedia](https://en.wikipedia.org/wiki/IEC_60870-5#IEC_60870-5-104)
+- [lib60870](https://github.com/mz-automation/lib60870), a C implementation
+  that is useful for cross-checking behaviour.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Origin
+
+This library started as a fork of
+[thinkgos/go-iecp5](https://github.com/thinkgos/go-iecp5). The upstream
+project has been archived by its author and is no longer maintained. Its
+archive notice released the code without a licence, and this fork relicensed
+it under MIT. Since then the API has been rewritten and the two are no longer
+compatible. Code written against the original will not build against this
+library without changes.
