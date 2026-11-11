@@ -159,7 +159,7 @@ func TestTypeID_Info(t *testing.T) {
 				IsCommand:      true,
 				HasTimeTag:     true,
 				AllowedIn104:   true,
-				InfoObjectSize: 0,
+				InfoObjectSize: 8,
 			},
 		},
 		{

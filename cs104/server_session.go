@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -31,6 +32,8 @@ type SrvSession struct {
 	params  *asdu.Params
 	conn    net.Conn
 	handler asdu.Handler
+	// rxError, if set, is told about every received frame that is dropped.
+	rxError RxErrorHandler
 	// tlsState is captured after the accept-side handshake completes, so
 	// reading it never touches the tls.Conn handshake lock and survives
 	// wrapping of conn.
@@ -284,10 +287,12 @@ func (sf *SrvSession) run(ctx context.Context) error {
 				sf.Debug("RX iFrame %v", head)
 				if !isActive {
 					sf.Warn("station not active")
+					reportRx(sf.rxError, sf, RxInactive, apdu, nil, errors.New("I-frame before STARTDT was confirmed"))
 					break // not active, discard apdu
 				}
 				if !sf.updateAckNoOut(head.rcvSN) || head.sendSN != sf.seqNoRcv {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
+					reportRx(sf.rxError, sf, RxSequence, apdu, nil, fmt.Errorf("I-frame send %d, receive %d; expected send %d", head.sendSN, head.rcvSN, sf.seqNoRcv))
 					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
@@ -329,6 +334,7 @@ func (sf *SrvSession) run(ctx context.Context) error {
 					testFrAliveSendSince = willNotTimeout
 				default:
 					sf.Error("illegal U-Frame functions[0x%02x] ignored", head.function)
+					reportRx(sf.rxError, sf, RxUFrame, apdu, nil, fmt.Errorf("illegal U-frame function 0x%02x", head.function))
 				}
 			}
 		}
@@ -351,9 +357,10 @@ func (sf *SrvSession) handlerLoop() {
 			asduPack := asdu.NewEmptyASDU(sf.params)
 			if err := asduPack.UnmarshalBinary(rawAsdu); err != nil {
 				sf.Error("asdu UnmarshalBinary failed,%+v", err)
+				reportRx(sf.rxError, sf, RxDecode, rawAsdu, nil, err)
 				continue
 			}
-			if err := sf.serverHandler(asduPack); err != nil {
+			if err := sf.serverHandler(asduPack, rawAsdu); err != nil {
 				sf.Error("serverHandler falied,%+v", err)
 			}
 		}
@@ -422,7 +429,7 @@ func (sf *SrvSession) updateAckNoOut(ackNo uint16) (ok bool) {
 	return true
 }
 
-func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
+func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU, raw []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			sf.Critical("server handler %+v", err)
@@ -433,6 +440,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 
 	msg, err := asdu.ParseASDU(asduPack)
 	if err != nil {
+		reportRx(sf.rxError, sf, RxParse, raw, asduPack, err)
 		return err
 	}
 

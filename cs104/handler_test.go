@@ -68,7 +68,7 @@ func TestServerHandlerDispatch(t *testing.T) {
 		t.Fatalf("UnmarshalBinary failed: %v", err)
 	}
 
-	if err := sess.serverHandler(a); err != nil {
+	if err := sess.serverHandler(a, raw); err != nil {
 		t.Fatalf("serverHandler failed: %v", err)
 	}
 	if len(h.msgs) != 1 {

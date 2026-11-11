@@ -280,6 +280,27 @@ cli.SetLogProvider(myLogger) // anything that implements clog.LogProvider
 Levels are `LevelOff`, `LevelCritical`, `LevelError`, `LevelWarn` and
 `LevelDebug`. Debug prints every frame.
 
+## Dropped frames
+
+A received frame that never reaches the handler can be reported to your
+code instead of only to the log:
+
+```go
+opt.SetRxErrorHandler(func(c asdu.Connect, e cs104.RxError) {
+	// e.Kind, e.Raw (a copy you may keep), e.ASDU (for RxParse), e.Err
+})
+srv.SetRxErrorHandler(handler) // the same for a server, before it starts
+```
+
+The kinds are:
+- `RxDecode`: the ASDU could not be decoded, for example an unknown type.
+- `RxParse`: the ASDU decoded, but its information objects could not be parsed.
+- `RxUFrame`: a U-frame with an unknown function.
+- `RxInactive`: an I-frame that arrived before STARTDT was confirmed.
+- `RxSequence`: an I-frame with a wrong sequence number. The connection closes after it.
+
+The handler runs on the receive goroutine, so it must not block.
+
 ## Examples
 
 The `_examples` folder has runnable programs:

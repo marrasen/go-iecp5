@@ -21,6 +21,8 @@ type ClientOption struct {
 	TLSConfig *tls.Config // TLS configuration
 	// DialContext allows providing a custom dialer (e.g., SSH jump). If nil, net.Dialer is used.
 	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
+	// RxError, if set, is told about every received frame that is dropped.
+	RxError RxErrorHandler
 }
 
 // NewOption with default config and default asdu.ParamsWide params
@@ -28,6 +30,7 @@ func NewOption() *ClientOption {
 	return &ClientOption{
 		DefaultConfig(),
 		*asdu.ParamsWide,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -63,6 +66,12 @@ func (sf *ClientOption) SetTLSConfig(t *tls.Config) *ClientOption {
 // SetDialContext sets a custom dialer function used to establish TCP connections (e.g., SSH jump).
 func (sf *ClientOption) SetDialContext(dial func(ctx context.Context, network, address string) (net.Conn, error)) *ClientOption {
 	sf.DialContext = dial
+	return sf
+}
+
+// SetRxErrorHandler sets the handler told about every received frame that is dropped.
+func (sf *ClientOption) SetRxErrorHandler(h RxErrorHandler) *ClientOption {
+	sf.RxError = h
 	return sf
 }
 

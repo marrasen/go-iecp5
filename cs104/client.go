@@ -6,6 +6,7 @@ package cs104
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -331,10 +332,12 @@ func (sf *Client) run(ctx context.Context) error {
 				sf.Debug("RX iFrame %v", head)
 				if atomic.LoadUint32(&sf.isActive) == inactive {
 					sf.Warn("station not active")
+					reportRx(sf.option.RxError, sf, RxInactive, apdu, nil, errors.New("I-frame before STARTDT was confirmed"))
 					break // not active, discard apdu
 				}
 				if !sf.updateAckNoOut(head.rcvSN) || head.sendSN != sf.seqNoRcv {
 					sf.Error("fatal incoming acknowledge either earlier than previous or later than sendTime")
+					reportRx(sf.option.RxError, sf, RxSequence, apdu, nil, fmt.Errorf("I-frame send %d, receive %d; expected send %d", head.sendSN, head.rcvSN, sf.seqNoRcv))
 					return errors.New("fatal incoming acknowledge either earlier than previous or later than sendTime")
 				}
 
@@ -376,6 +379,7 @@ func (sf *Client) run(ctx context.Context) error {
 					testFrAliveSendSince = willNotTimeout
 				default:
 					sf.Error("illegal U-Frame functions[0x%02x] ignored", head.function)
+					reportRx(sf.option.RxError, sf, RxUFrame, apdu, nil, fmt.Errorf("illegal U-frame function 0x%02x", head.function))
 				}
 			}
 		}
@@ -397,10 +401,12 @@ func (sf *Client) handlerLoop() {
 			asduPack := asdu.NewEmptyASDU(&sf.option.params)
 			if err := asduPack.UnmarshalBinary(rawAsdu); err != nil {
 				sf.Warn("asdu UnmarshalBinary failed,%+v", err)
+				reportRx(sf.option.RxError, sf, RxDecode, rawAsdu, nil, err)
 				continue
 			}
 			if err := sf.clientHandler(asduPack); err != nil {
 				sf.Warn("Falied handling I frame, error: %v", err)
+				reportRx(sf.option.RxError, sf, RxParse, rawAsdu, asduPack, err)
 			}
 		}
 	}

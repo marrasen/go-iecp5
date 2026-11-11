@@ -39,6 +39,7 @@ func NewServerSpecial(handler asdu.Handler, o *ClientOption) ServerSpecial {
 			config:  &o.config,
 			params:  &o.params,
 			handler: handler,
+			rxError: o.RxError,
 
 			rcvASDU:  make(chan []byte, 1024),
 			sendASDU: make(chan []byte, 1024),
