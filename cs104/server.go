@@ -25,6 +25,7 @@ type Server struct {
 	config    Config
 	params    asdu.Params
 	handler   asdu.Handler
+	rxError   RxErrorHandler
 	ConnState func(asdu.Connect, ConnState)
 	TLSConfig *tls.Config
 	mux       sync.Mutex
@@ -63,6 +64,13 @@ func (sf *Server) SetParams(p *asdu.Params) *Server {
 	} else {
 		sf.params = *p
 	}
+	return sf
+}
+
+// SetRxErrorHandler sets the handler told about every received frame that is dropped. Call it before the server
+// starts.
+func (sf *Server) SetRxErrorHandler(h RxErrorHandler) *Server {
+	sf.rxError = h
 	return sf
 }
 
@@ -142,6 +150,7 @@ func (sf *Server) Serve(listen net.Listener) error {
 				config:   &sf.config,
 				params:   &sf.params,
 				handler:  sf.handler,
+				rxError:  sf.rxError,
 				conn:     conn,
 				tlsState: tlsState,
 				rcvASDU:  make(chan []byte, sf.config.RecvUnAckLimitW<<4),
